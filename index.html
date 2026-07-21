@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión - Buques Metaneros</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+  <div id="loadingModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="spinner"></div>
+      <p id="loadingText">Procesando...</p>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR INGRESO -->
+  <div id="modalEditarIngreso" class="modal-overlay">
+    <div class="modal-box modal-editar">
+      <div class="modal-header">
+        <h3>Editar Ingreso</h3>
+        <button class="modal-close" onclick="cerrarModal('modalEditarIngreso')">&times;</button>
+      </div>
+      <form id="formEditarIngreso" onsubmit="return false;">
+        <input type="hidden" id="editHistFila">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre del Buque <span class="req">*</span></label><input type="text" id="editNombreBuque" required></div>
+          <div class="form-group"><label>Señal Distintiva</label><input type="text" id="editSenal"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Bandera</label><select id="editBandera"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group"><label>IMO <span class="req">*</span></label><input type="text" id="editIMO" pattern="\d{7}" title="El IMO debe tener 7 dígitos" required></div>
+          <div class="form-group"><label>Tipo de Carga <span class="req">*</span></label><select id="editTipoCarga" required><option value="">Seleccionar...</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Fecha Amarre <span class="req">*</span></label><input type="date" id="editFechaAmarre" required></div>
+          <div class="form-group"><label>Hora Amarre <span class="req">*</span></label><input type="time" id="editHoraAmarre" required></div>
+          <div class="form-group"><label>Puerto/Terminal <span class="req">*</span></label><select id="editPuerto" required><option value="">Seleccionar...</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Cantidad Descargada (Tns) <span class="req">*</span></label><input type="text" id="editCantidadDescargada" required onblur="formatTonelada('editCantidadDescargada')"></div>
+          <div class="form-group"><label>Procedencia <span class="req">*</span></label><input type="text" id="editProcedencia" required oninput="normalizarProcedencia('editProcedencia')"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Fecha Zarpada</label><input type="date" id="editFechaZarpada"></div>
+          <div class="form-group"><label>Hora Zarpada</label><input type="time" id="editHoraZarpada"></div>
+          <div class="form-group"><label>Estado</label><select id="editEstado"><option value="Amarre">Amarre</option><option value="Descargando">Descargando</option><option value="Completado">Completado</option><option value="Zarpado">Zarpado</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Observaciones</label><input type="text" id="editObservaciones"></div>
+        </div>
+        <div class="form-actions" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="cerrarModal('modalEditarIngreso')">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarEdicionIngreso()">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR BUQUE -->
+  <div id="modalEditarBuque" class="modal-overlay">
+    <div class="modal-box modal-editar">
+      <div class="modal-header">
+        <h3>Editar Buque</h3>
+        <button class="modal-close" onclick="cerrarModal('modalEditarBuque')">&times;</button>
+      </div>
+      <form id="formEditarBuque" onsubmit="return false;">
+        <input type="hidden" id="editBuqueFila">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre del Buque <span class="req">*</span></label><input type="text" id="editBuqueNombre" required></div>
+          <div class="form-group"><label>Señal Distintiva</label><input type="text" id="editBuqueSenal"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Bandera</label><select id="editBuqueBandera"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group"><label>IMO <span class="req">*</span></label><input type="text" id="editBuqueIMO" pattern="\d{7}" title="El IMO debe tener 7 dígitos" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Tipo de Carga</label><select id="editBuqueTipo"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group"><label>Capacidad (m³)</label><input type="number" id="editBuqueCapacidad"></div>
+        </div>
+        <div class="form-actions" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="cerrarModal('modalEditarBuque')">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarEdicionBuque()">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CREAR/EDITAR USUARIO -->
+  <div id="modalUsuario" class="modal-overlay">
+    <div class="modal-box modal-editar">
+      <div class="modal-header">
+        <h3 id="tituloModalUsuario">Agregar Usuario</h3>
+        <button class="modal-close" onclick="cerrarModal('modalUsuario')">&times;</button>
+      </div>
+      <form id="formUsuario" onsubmit="return false;">
+        <input type="hidden" id="usuarioFila">
+        <input type="hidden" id="usuarioEditando" value="false">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre Completo <span class="req">*</span></label><input type="text" id="usuarioNombre" required></div>
+          <div class="form-group"><label>Usuario <span class="req">*</span></label><input type="text" id="usuarioUser" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label id="labelPassword">Contraseña <span class="req">*</span></label><input type="password" id="usuarioPass"></div>
+          <div class="form-group"><label>Rol <span class="req">*</span></label><select id="usuarioRol" required><option value="visual">Solo lectura (visual)</option><option value="admin">Administrador</option></select></div>
+        </div>
+        <div class="form-actions" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="cerrarModal('modalUsuario')">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarUsuario()">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR PREVISTO -->
+  <div id="modalEditarPrevisto" class="modal-overlay">
+    <div class="modal-box modal-editar">
+      <div class="modal-header">
+        <h3>Editar Previsto</h3>
+        <button class="modal-close" onclick="cerrarModal('modalEditarPrevisto')">&times;</button>
+      </div>
+      <form id="formEditarPrevisto" onsubmit="return false;">
+        <input type="hidden" id="prevEditFila">
+        <div class="form-row">
+          <div class="form-group"><label>Buque</label><input type="text" id="prevEditBuque" readonly style="opacity:0.7;"></div>
+          <div class="form-group"><label>IMO</label><input type="text" id="prevEditIMO" readonly style="opacity:0.7;"></div>
+          <div class="form-group"><label>Fecha Prevista</label><input type="date" id="prevEditFechaPrevista" readonly style="opacity:0.7;"></div>
+        </div>
+        <h4 style="margin: 1rem 0 0.5rem; color: var(--accent); font-size: 0.95rem;">Datos de Amarre</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Fecha Amarre <span class="req">*</span></label><input type="date" id="prevEditFechaAmarre" required></div>
+          <div class="form-group"><label>Hora Amarre <span class="req">*</span></label><input type="time" id="prevEditHoraAmarre" required></div>
+          <div class="form-group"><label>Puerto/Terminal <span class="req">*</span></label><select id="prevEditPuerto" required><option value="">Seleccionar...</option></select></div>
+        </div>
+        <h4 style="margin: 1rem 0 0.5rem; color: var(--accent); font-size: 0.95rem;">Datos de Descarga</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Cantidad Descargada (Tns)</label><input type="text" id="prevEditCantidad" onblur="formatTonelada('prevEditCantidad')"></div>
+          <div class="form-group"><label>Procedencia</label><input type="text" id="prevEditProcedencia" oninput="normalizarProcedencia('prevEditProcedencia')"></div>
+          <div class="form-group"><label>Señal Distintiva</label><input type="text" id="prevEditSenal"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Bandera</label><select id="prevEditBandera"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group"><label>Tipo de Carga</label><select id="prevEditTipoCarga"><option value="">Seleccionar...</option></select></div>
+        </div>
+        <h4 style="margin: 1rem 0 0.5rem; color: var(--accent); font-size: 0.95rem;">Datos de Zarpe (opcional)</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Fecha Zarpada</label><input type="date" id="prevEditFechaZarpada"></div>
+          <div class="form-group"><label>Hora Zarpada</label><input type="time" id="prevEditHoraZarpada"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Estado</label><select id="prevEditEstado"><option value="Pendiente">Pendiente</option><option value="Arribó">Arribó</option><option value="Completado">Completado</option><option value="Zarpado">Zarpado</option></select></div>
+          <div class="form-group"><label>Observaciones</label><input type="text" id="prevEditObservaciones"></div>
+        </div>
+        <div class="form-actions" style="justify-content: flex-end;">
+          <button type="button" class="btn btn-outline" onclick="cerrarModal('modalEditarPrevisto')">Cancelar</button>
+          <button type="button" class="btn btn-success" onclick="guardarEdicionPrevisto()">Guardar y Agregar al Historial</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE RESUMEN -->
+  <div id="modalDetalleResumen" class="modal-overlay">
+    <div class="modal-box modal-editar" style="max-width: 900px;">
+      <div class="modal-header">
+        <h3 id="tituloDetalleResumen">Detalle</h3>
+        <button class="modal-close" onclick="cerrarModal('modalDetalleResumen')">&times;</button>
+      </div>
+      <div style="padding: 1rem 1.5rem; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="background: var(--primary); color: white; padding: 0.6rem; text-align: left; font-size: 0.85rem;">Buque</th>
+              <th style="background: var(--primary); color: white; padding: 0.6rem; text-align: left; font-size: 0.85rem;">IMO</th>
+              <th style="background: var(--primary); color: white; padding: 0.6rem; text-align: left; font-size: 0.85rem;">Fecha Prevista</th>
+              <th style="background: var(--primary); color: white; padding: 0.6rem; text-align: left; font-size: 0.85rem;">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="detalleResumenBody">
+            <tr><td colspan="4" style="text-align: center; padding: 1rem;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE LOGIN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <h2>Sistema de Gestión - Buques Metaneros</h2>
+      <p class="login-subtitle">Prefectura Naval Argentina</p>
+      <form id="loginForm" onsubmit="return false;">
+        <div class="login-field">
+          <label for="loginUsuario">Usuario</label>
+          <input type="text" id="loginUsuario" placeholder="Ingrese su usuario" required autofocus>
+        </div>
+        <div class="login-field">
+          <label for="loginPassword">Contraseña</label>
+          <input type="password" id="loginPassword" placeholder="Ingrese su contraseña" required>
+        </div>
+        <div id="loginError" class="login-error" style="display:none;"></div>
+        <button type="button" class="btn btn-primary login-btn" onclick="doLogin()">Ingresar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- CONTENIDO PRINCIPAL (oculto hasta login) -->
+  <div id="appContainer" style="display:none;">
+  <header class="institutional-header">
+    <div class="header-left">
+      <div class="org-title">
+        Prefectura Naval Argentina<br>
+        Dirección de Tráfico Marítimo Fluvial y Lacustre<br>
+        Servicio de Tráfico Marítimo<br>
+        Metaneros
+      </div>
+      <button class="btn-desconectar" onclick="doLogout()">DESCONECTAR</button>
+      <div class="session-info">
+        <span id="sessionUserName">—</span>
+        <span class="session-role" id="sessionUserRole">—</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Cambiar tema claro/oscuro">🌙</button>
+    </div>
+  </header>
+
+  <nav class="navbar-old" id="navbarOld">
+    <div class="menu-group">
+      <button class="menu-btn active" id="navBtnPanel" onclick="showSection('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>
+        Panel
+      </button>
+    </div>
+    <div class="menu-group">
+      <button class="menu-btn" id="navBtnMovimientos" onclick="toggleMenu('movimientosMenu', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Movimientos
+      </button>
+      <div class="dropdown-menu" id="movimientosMenu">
+        <a id="navLinkNuevo" onclick="showSection('nuevo')">Nuevo Ingreso</a>
+        <a id="navLinkPrevistos" onclick="showSection('previstos')">Previstos</a>
+      </div>
+    </div>
+    <div class="menu-group">
+      <button class="menu-btn" id="navBtnConsultas" onclick="toggleMenu('consultasMenu', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        Consultas
+      </button>
+      <div class="dropdown-menu" id="consultasMenu">
+        <a id="navLinkHistorial" onclick="showSection('historial')">Historial</a>
+      </div>
+    </div>
+    <div class="menu-group">
+      <button class="menu-btn admin-only" id="navBtnAdmin" onclick="toggleMenu('adminMenu', this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        Administración
+      </button>
+      <div class="dropdown-menu" id="adminMenu">
+        <a id="navLinkUsuarios" onclick="showSection('usuarios')">Gestión de Usuarios</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="section active">
+      <h2 class="page-title"><span class="bar"></span>Panel General</h2>
+      <div class="year-filter" id="dashboardYearFilter"><span>Filtrar por año:</span></div>
+
+      <div class="resumen-grid" id="resumenPrevistos" style="display: none;">
+        <div class="resumen-item" style="cursor:pointer;" onclick="verDetalleResumen('previstos')">
+          <h4>PREVISTOS</h4>
+          <div class="num" style="color: var(--accent);" id="resPrevistos">0</div>
+        </div>
+        <div class="resumen-item" style="cursor:pointer;" onclick="verDetalleResumen('ingresados')">
+          <h4>INGRESADOS</h4>
+          <div class="num" style="color: var(--secondary);" id="resIngresados">0</div>
+        </div>
+        <div class="resumen-item" style="cursor:pointer;" onclick="verDetalleResumen('cumplidos')">
+          <h4>CUMPLIDOS</h4>
+          <div class="num" style="color: var(--secondary);" id="resCumplidos">0</div>
+        </div>
+        <div class="resumen-item" style="cursor:pointer;" onclick="verDetalleResumen('pendientes')">
+          <h4>PENDIENTES</h4>
+          <div class="num" style="color: var(--danger);" id="resPendientes">0</div>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><h3>Total Buques</h3><div class="value" id="statTotalBuques">-</div><div class="unit">REGISTROS</div><div class="trend" id="trendBuques"></div></div>
+        <div class="stat-card"><h3>Total Descargado</h3><div class="value" id="statTotalToneladas">-</div><div class="unit">TONELADAS</div><div class="trend" id="trendToneladas"></div></div>
+        <div class="stat-card"><h3>Total Descargado</h3><div class="value" id="statTotalM3">-</div><div class="unit">M³ (aprox. 2.23 m³/Tn GNL)</div></div>
+        <div class="stat-card"><h3>Promedio Descarga</h3><div class="value" id="statPromedio">-</div><div class="unit">TONELADAS/BUQUE</div></div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="chart-container">
+          <h3>Toneladas por Mes</h3>
+          <div id="monthFilter" class="year-filter"><span>Filtrar por año:</span></div>
+          <canvas id="chartPorMes"></canvas>
+        </div>
+        <div class="chart-container"><h3>Buques por Bandera</h3><canvas id="chartPorBandera"></canvas></div>
+        <div class="chart-container"><h3>Top 10 Procedencias</h3><canvas id="chartPorProcedencia"></canvas></div>
+        <div class="chart-container"><h3>Top 10 Buques más Frecuentes</h3><canvas id="chartTopBuques"></canvas></div>
+      </div>
+    </div>
+
+    <!-- NUEVO INGRESO - WIZARD -->
+    <div id="nuevo" class="section">
+      <div class="form-container">
+        <h2 class="page-title"><span class="bar"></span>Registrar Nuevo Ingreso</h2>
+
+        <div class="wizard-progress" id="wizardProgress"></div>
+
+        <form id="formIngreso" onsubmit="return false;">
+          <input type="hidden" id="esNuevo" value="false">
+
+          <!-- PASO 1: Verificar buque -->
+          <div class="wizard-panel active" data-step="1">
+            <h3 style="margin-bottom: 1rem;">Verificar Buque</h3>
+            <div class="form-row">
+              <div class="form-group"><label>IMO del Buque</label><input type="text" id="imoInput" placeholder="Ingrese número IMO..."></div>
+              <div class="form-group"><label>o buscar por Nombre</label><input type="text" id="nombreInput" list="buqueNombreList" placeholder="Nombre del buque..."><datalist id="buqueNombreList"></datalist></div>
+              <div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-primary" onclick="verificarBuque()">Buscar Buque</button></div>
+            </div>
+            <div id="buqueInfo" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(63,156,109,0.1); border-radius: 8px; border: 1px solid var(--secondary);">
+              <h4 style="color: var(--secondary);">Buque encontrado — datos autocompletados</h4>
+              <p id="buqueInfoDetails" style="margin-top: 0.5rem;"></p>
+            </div>
+            <div id="newBuqueAlert" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(217,164,65,0.1); border-radius: 8px; border: 1px solid var(--warning);">
+              <h4 style="color: var(--warning);">Buque nuevo — no está en la base de datos</h4>
+              <p>Se registrará como nuevo buque. Complete los campos en el paso siguiente.</p>
+            </div>
+          </div>
+
+          <!-- PASO 2: Datos del buque -->
+          <div class="wizard-panel" data-step="2">
+            <h3 style="margin-bottom: 1rem;">Datos del Buque</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Nombre del Buque <span class="req">*</span></label><input type="text" id="nombreBuque" required></div>
+              <div class="form-group"><label>Señal Distintiva</label><input type="text" id="senalDist"></div>
+              <div class="form-group"><label>Bandera</label><select id="bandera"><option value="">Seleccionar...</option></select></div>
+              <div class="form-group"><label>IMO <span class="req">*</span></label><input type="text" id="imo" pattern="\d{7}" title="El IMO debe tener 7 dígitos" required><div class="field-hint">7 dígitos numéricos</div></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Tipo de Carga <span class="req">*</span></label><select id="tipoCarga" required><option value="">Seleccionar...</option></select></div>
+              <div class="form-group"><label>Capacidad (m³)</label><input type="number" id="capacidad"></div>
+            </div>
+          </div>
+
+          <!-- PASO 3: Amarre -->
+          <div class="wizard-panel" data-step="3">
+            <h3 style="margin-bottom: 1rem;">Datos de Amarre</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Fecha Amarre <span class="req">*</span></label><input type="date" id="fechaAmarre" required></div>
+              <div class="form-group"><label>Hora Amarre <span class="req">*</span></label><input type="time" id="horaAmarre" required></div>
+              <div class="form-group"><label>Puerto/Terminal <span class="req">*</span></label><select id="puerto" required><option value="">Seleccionar...</option></select></div>
+            </div>
+          </div>
+
+          <!-- PASO 4: Descarga y zarpa -->
+          <div class="wizard-panel" data-step="4">
+            <h3 style="margin-bottom: 1rem;">Datos de Descarga</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Cantidad Descargada (Tns)</label><input type="text" id="cantidadDescargada" onblur="formatTonelada('cantidadDescargada')"></div>
+              <div class="form-group"><label>Procedencia <span class="req">*</span></label><input type="text" id="procedencia" required oninput="normalizarProcedencia('procedencia')"></div>
+            </div>
+            <h3 style="margin: 1.5rem 0 1rem;">Datos de Zarpa (opcional)</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Fecha Zarpada</label><input type="date" id="fechaZarpada"></div>
+              <div class="form-group"><label>Hora Zarpada</label><input type="time" id="horaZarpada"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Observaciones</label><input type="text" id="observaciones"></div>
+            </div>
+          </div>
+
+          <!-- PASO 5: Revisar y guardar -->
+          <div class="wizard-panel" data-step="5">
+            <h3 style="margin-bottom: 1rem;">Revisar y Guardar</h3>
+            <div class="review-box" id="reviewBox"></div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" id="btnAtras" onclick="prevStep()" style="visibility: hidden;">← Atrás</button>
+            <div style="display:flex; gap:1rem;">
+              <button type="button" class="btn btn-danger" onclick="limpiarFormulario()">Limpiar</button>
+              <button type="button" class="btn btn-primary" id="btnSiguiente" onclick="nextStep()">Siguiente →</button>
+              <button type="button" class="btn btn-success" id="btnGuardar" onclick="guardarIngreso()" style="display:none;">Guardar Registro</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="historial" class="section">
+      <div class="table-container">
+        <div class="historial-header">
+          <h2>Historial de Ingresos</h2>
+          <div class="year-filter" id="historialYearFilter"><span>Filtrar por año:</span></div>
+        </div>
+        <div class="historial-toolbar">
+          <input type="text" id="histSearch" placeholder="Buscar por nombre, IMO o Señal Distintiva..." oninput="filterHistorial()">
+          <button class="btn btn-outline btn-sm" onclick="exportarHistorialCSV()">⬇ Exportar CSV</button>
+        </div>
+        <div id="histResumen" class="hist-resumen" style="display:none;"></div>
+        <table id="tablaHistorial">
+          <thead>
+            <tr>
+              <th onclick="sortHistorial('ID')">ID<span class="arrow" id="arrow-ID"></span></th>
+              <th onclick="sortHistorial('Nombre Buque')">Nombre Buque<span class="arrow" id="arrow-Nombre Buque"></span></th>
+              <th onclick="sortHistorial('IMO')">IMO<span class="arrow" id="arrow-IMO"></span></th>
+              <th onclick="sortHistorial('Señal Distintiva')">Señal<span class="arrow" id="arrow-Señal Distintiva"></span></th>
+              <th onclick="sortHistorial('Bandera')">Bandera<span class="arrow" id="arrow-Bandera"></span></th>
+              <th onclick="sortHistorial('Fecha Amarre')">Fecha Amarre<span class="arrow" id="arrow-Fecha Amarre"></span></th>
+              <th>Hora</th>
+              <th onclick="sortHistorial('Puerto/Terminal')">Puerto<span class="arrow" id="arrow-Puerto/Terminal"></span></th>
+              <th onclick="sortHistorial('Cantidad Descargada (Tns)')">Cantidad (Tns)<span class="arrow" id="arrow-Cantidad Descargada (Tns)"></span></th>
+              <th onclick="sortHistorial('Estado')">Estado<span class="arrow" id="arrow-Estado"></span></th>
+              <th class="admin-only">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="historialBody">
+            <tr><td colspan="9" style="text-align: center;">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+        <div class="pager" id="histPager"></div>
+      </div>
+    </div>
+
+    <!-- PREVISTOS -->
+    <div id="previstos" class="section">
+      <div class="form-container" style="margin-bottom: 2rem;">
+        <h2 class="page-title" style="margin-bottom: 1.5rem;"><span class="bar"></span>Agregar Previsto</h2>
+        <div class="form-row">
+          <div class="form-group"><label>Año <span class="req">*</span></label><input type="number" id="prevAnio" placeholder="Ej: 2024" min="2000" max="2099"></div>
+          <div class="form-group"><label>Nombre del Buque <span class="req">*</span></label><input type="text" id="prevBuque" placeholder="Nombre del buque"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>IMO</label><input type="text" id="prevIMO" placeholder="Número IMO (opcional)"></div>
+          <div class="form-group"><label>Fecha Prevista <span class="req">*</span></label><input type="date" id="prevFecha"></div>
+          <div class="form-group"><label>&nbsp;</label><button type="button" class="btn btn-success" onclick="guardarPrevisto()">Agregar Previsto</button></div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <div class="historial-header">
+          <h2>Previstos Cargados</h2>
+          <div class="year-filter" id="previstosYearFilter"><span>Filtrar por año:</span></div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Año</th><th>Buque</th><th>IMO</th><th>Fecha Prevista</th><th>Estado</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="previstosBody">
+            <tr><td colspan="6" style="text-align: center;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GESTION DE USUARIOS -->
+    <div id="usuarios" class="section">
+      <div class="table-container">
+        <div class="historial-header">
+          <h2>Gestión de Usuarios</h2>
+          <button class="btn btn-success" onclick="abrirModalCrearUsuario()">+ Agregar Usuario</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Usuario</th><th>Rol</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usuariosBody">
+            <tr><td colspan="4" style="text-align: center;">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  </div> <!-- /appContainer -->
+
+  <script>
+    var charts = {};
+    var currentDashYear = 'all';
+    var currentHistYear = 'all';
+    var currentPrevYear = 'all';
+    var currentDashChartYear = 'all';
+    var dashData = null;
+    var historialData = [];
+    var histFiltered = [];
+    var histSortCol = 'Fecha Amarre';
+    var histSortDir = -1;
+    var histPage = 1;
+    var HIST_PAGE_SIZE = 25;
+    var buquesList = [];
+    var wizardStep = 1;
+    var WIZARD_TOTAL_STEPS = 5;
+    var wizardLabels = ['Verificar', 'Buque', 'Amarre', 'Descarga', 'Revisar'];
+
+    // SESIÓN
+    var session = { usuario: null, rol: null, nombre: null };
+
+    function loadSession() {
+      try {
+        var s = sessionStorage.getItem('buques-session');
+        if (s) { session = JSON.parse(s); return true; }
+      } catch (e) {}
+      return false;
+    }
+
+    function saveSession(data) {
+      session = data;
+      try { sessionStorage.setItem('buques-session', JSON.stringify(data)); } catch (e) {}
+    }
+
+    function clearSession() {
+      session = { usuario: null, rol: null, nombre: null };
+      try { sessionStorage.removeItem('buques-session'); } catch (e) {}
+    }
+
+    function isAdmin() { return session.rol === 'admin'; }
+
+    function doLogin() {
+      var usuario = document.getElementById('loginUsuario').value.trim();
+      var password = document.getElementById('loginPassword').value.trim();
+      var errEl = document.getElementById('loginError');
+      if (!usuario || !password) { errEl.textContent = 'Complete usuario y contraseña'; errEl.style.display = 'block'; return; }
+      errEl.style.display = 'none';
+      showLoading('Ingresando...');
+      apiGet('login', { usuario: usuario, password: password }).then(function(r) {
+        hideLoading();
+        if (r.success) {
+          saveSession({ usuario: r.usuario, rol: r.rol, nombre: r.nombre });
+          showApp();
+        } else {
+          errEl.textContent = r.error || 'Credenciales incorrectas';
+          errEl.style.display = 'block';
+        }
+      }).catch(function(e) { hideLoading(); errEl.textContent = 'Error: ' + e.message; errEl.style.display = 'block'; });
+    }
+
+    function doLogout() {
+      if (!confirm('¿Cerrar sesión?')) return;
+      clearSession();
+      document.getElementById('appContainer').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('loginUsuario').value = '';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').style.display = 'none';
+    }
+
+    function showApp() {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appContainer').style.display = 'block';
+      var nombreEl = document.getElementById('sessionUserName');
+      var rolEl = document.getElementById('sessionUserRole');
+      if (nombreEl) nombreEl.textContent = session.nombre || session.usuario;
+      if (rolEl) rolEl.textContent = session.rol === 'admin' ? 'Administrador' : 'Solo lectura';
+      applyRolePermissions();
+      initApp();
+    }
+
+    function applyRolePermissions() {
+      var vis = isAdmin() ? '' : 'none';
+      // Botones de acción que solo admin puede ver
+      var adminOnly = document.querySelectorAll('.admin-only');
+      for (var i = 0; i < adminOnly.length; i++) adminOnly[i].style.display = vis;
+      // Movimientos: ocultar solo "Nuevo Ingreso" si es visual
+      var navNuevos = document.getElementById('navLinkNuevo');
+      if (navNuevos) navNuevos.style.display = isAdmin() ? '' : 'none';
+      // En previstos: ocultar formulario de agregar y botones de acción
+      var prevForm = document.querySelector('#previstos .form-container');
+      if (prevForm && !isAdmin()) prevForm.style.display = 'none';
+      else if (prevForm) prevForm.style.display = '';
+    }
+
+    function initApp() {
+      cargarConfiguracion();
+      cargarAnios();
+      cargarBuquesList();
+      cargarDashboard('all');
+      renderWizardProgress();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initTheme();
+      if (loadSession()) {
+        showApp();
+      } else {
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('appContainer').style.display = 'none';
+      }
+      // Enter en login
+      document.getElementById('loginPassword').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') doLogin();
+      });
+      document.getElementById('loginUsuario').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+      });
+    });
+
+    // TEMA CLARO / OSCURO
+    function initTheme() {
+      var saved = 'light';
+      try { saved = localStorage.getItem('buques-theme') || 'light'; } catch (e) {}
+      document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('themeToggleBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+    }
+    function toggleTheme() {
+      var current = document.documentElement.getAttribute('data-theme') || 'light';
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      document.getElementById('themeToggleBtn').textContent = next === 'dark' ? '☀️' : '🌙';
+      try { localStorage.setItem('buques-theme', next); } catch (e) {}
+    }
+
+    // (la función de desconectar se maneja con doLogout)
+
+    // MENÚ DE DOS NIVELES
+    function closeAllMenus() {
+      document.querySelectorAll('.dropdown-menu').forEach(function(m) { m.classList.remove('open'); });
+    }
+    function toggleMenu(menuId, btn) {
+      var menu = document.getElementById(menuId);
+      var wasOpen = menu.classList.contains('open');
+      closeAllMenus();
+      if (!wasOpen) menu.classList.add('open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.menu-group')) closeAllMenus();
+    });
+
+    var SECTION_NAV_MAP = {
+      dashboard: { btn: 'navBtnPanel', link: null },
+      nuevo: { btn: 'navBtnMovimientos', link: 'navLinkNuevo' },
+      previstos: { btn: 'navBtnMovimientos', link: 'navLinkPrevistos' },
+      historial: { btn: 'navBtnConsultas', link: 'navLinkHistorial' },
+      usuarios: { btn: 'navBtnAdmin', link: 'navLinkUsuarios' }
+    };
+
+    function updateNavActive(sectionId) {
+      document.querySelectorAll('.menu-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.dropdown-menu a').forEach(function(a) { a.classList.remove('active'); });
+      var mapping = SECTION_NAV_MAP[sectionId];
+      if (!mapping) return;
+      var btn = document.getElementById(mapping.btn);
+      if (btn) btn.classList.add('active');
+      if (mapping.link) { var link = document.getElementById(mapping.link); if (link) link.classList.add('active'); }
+    }
+
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+      document.getElementById(sectionId).classList.add('active');
+      updateNavActive(sectionId);
+      closeAllMenus();
+      if (sectionId === 'dashboard') cargarDashboard(currentDashYear);
+      if (sectionId === 'historial') cargarHistorial(currentHistYear);
+      if (sectionId === 'previstos') cargarPrevistos(currentPrevYear);
+      if (sectionId === 'usuarios' && isAdmin()) cargarUsuarios();
+    }
+
+    // ============================================
+    // CONEXIÓN CON EL BACKEND (Apps Script Web App)
+    // ============================================
+    // Link de TU despliegue como Aplicación Web (termina en /exec).
+    var API_URL = 'https://script.google.com/macros/s/AKfycbxiRlEheVTX3m4M5GOfa6K3mZJZDFzM0FnT6-G6JViJD7O62TduNaJPTjlKBPdFiMNKow/exec';
+
+    // Los Web Apps de Apps Script redirigen internamente la respuesta a
+    // script.googleusercontent.com, y esa redirección no lleva headers de
+    // CORS válidos — por eso fetch() falla siempre con "No Access-Control-
+    // Allow-Origin", sin importar el origen. La solución es JSONP: pedimos
+    // el dato con una etiqueta <script>, que no está sujeta a CORS, y el
+    // servidor responde envuelto en una función callback.
+    function jsonp(url) {
+      return new Promise(function(resolve, reject) {
+        var cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+        var script = document.createElement('script');
+        var timeout = setTimeout(function() { cleanup(); reject(new Error('Tiempo de espera agotado contactando el servidor.')); }, 15000);
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+        window[cbName] = function(data) { cleanup(); resolve(data); };
+        script.onerror = function() { cleanup(); reject(new Error('No se pudo contactar el servidor (revisá el API_URL y el despliegue).')); };
+        script.src = url + (url.indexOf('?') === -1 ? '?' : '&') + 'callback=' + cbName;
+        document.body.appendChild(script);
+      });
+    }
+
+    function apiGet(action, params) {
+      params = params || {};
+      var url = API_URL + '?action=' + encodeURIComponent(action);
+      Object.keys(params).forEach(function(k) {
+        if (params[k] !== undefined && params[k] !== null) url += '&' + k + '=' + encodeURIComponent(params[k]);
+      });
+      return jsonp(url).then(function(data) {
+        if (data && data.error) throw new Error(data.error);
+        return data;
+      });
+    }
+
+    function apiPost(action, payload) {
+      var url = API_URL + '?action=' + encodeURIComponent(action) + '&payload=' + encodeURIComponent(JSON.stringify(payload || {}));
+      return jsonp(url).then(function(data) {
+        if (data && data.error) throw new Error(data.error);
+        return data;
+      });
+    }
+
+    function showLoading(text) { document.getElementById('loadingText').textContent = text || 'Procesando...'; document.getElementById('loadingModal').classList.add('active'); }
+    function hideLoading() { document.getElementById('loadingModal').classList.remove('active'); }
+    function showToast(message, type) { var t = document.getElementById('toast'); t.textContent = message; t.className = 'toast toast-' + type + ' show'; setTimeout(function() { t.classList.remove('show'); }, 4000); }
+
+    // AÑOS
+    function cargarAnios() {
+      apiGet('getYears').then(function(years) {
+        years = (years || []).slice().sort(function(a, b) { return parseInt(a) - parseInt(b); });
+        renderYearButtons('dashboardYearFilter', years, 'dash');
+        renderYearButtons('historialYearFilter', years, 'hist');
+        renderYearButtons('previstosYearFilter', years, 'prev');
+      }).catch(function(e) { console.error(e); });
+    }
+
+    function renderYearButtons(containerId, years, prefix) {
+      var c = document.getElementById(containerId);
+      c.innerHTML = '<span>Filtrar por año:</span>';
+      var allBtn = document.createElement('button');
+      allBtn.className = 'year-btn active'; allBtn.textContent = 'Todos';
+      allBtn.onclick = function() { filtrarPorAnio('all', prefix); };
+      c.appendChild(allBtn);
+      if (years) years.forEach(function(y) {
+        var b = document.createElement('button');
+        b.className = 'year-btn'; b.textContent = y;
+        b.onclick = function() { filtrarPorAnio(y.toString(), prefix); };
+        c.appendChild(b);
+      });
+    }
+
+    function filtrarPorAnio(anio, prefix) {
+      if (prefix === 'dash') { currentDashYear = anio; cargarDashboard(anio); }
+      else if (prefix === 'hist') { currentHistYear = anio; cargarHistorial(anio); }
+      else if (prefix === 'prev') { currentPrevYear = anio; cargarPrevistos(anio); }
+      var ids = { dash: 'dashboardYearFilter', hist: 'historialYearFilter', prev: 'previstosYearFilter' };
+      document.getElementById(ids[prefix]).querySelectorAll('.year-btn').forEach(function(b) {
+        b.classList.remove('active');
+        if ((b.textContent === 'Todos' && anio === 'all') || b.textContent === anio) b.classList.add('active');
+      });
+    }
+
+    // CONFIG
+    function cargarConfiguracion() {
+      apiGet('getConfigOptions').then(function(c) {
+        populateSelect('bandera', c.banderas); populateSelect('tipoCarga', c.tipoCarga); populateSelect('puerto', c.puertos);
+        populateSelect('editBandera', c.banderas); populateSelect('editTipoCarga', c.tipoCarga); populateSelect('editPuerto', c.puertos);
+        populateSelect('editBuqueBandera', c.banderas); populateSelect('editBuqueTipo', c.tipoCarga);
+      }).catch(function(e) { console.error(e); });
+    }
+    function populateSelect(id, opts) {
+      var s = document.getElementById(id); s.innerHTML = '<option value="">Seleccionar...</option>';
+      if (!opts) return;
+      opts.forEach(function(o) { if (o && o.toString().trim()) { var op = document.createElement('option'); op.value = o.toString(); op.textContent = o.toString(); s.appendChild(op); } });
+    }
+
+    // BUQUES (autocompletado por nombre)
+    function cargarBuquesList() {
+      apiGet('getAllBuques').then(function(list) {
+        buquesList = list || [];
+        var dl = document.getElementById('buqueNombreList');
+        dl.innerHTML = '';
+        buquesList.forEach(function(b) {
+          var opt = document.createElement('option');
+          opt.value = b.nombre;
+          dl.appendChild(opt);
+        });
+      }).catch(function(e) { console.error(e); });
+    }
+
+    function verificarBuque() {
+      var imo = document.getElementById('imoInput').value.trim();
+      var nombre = document.getElementById('nombreInput').value.trim();
+      if (!imo && !nombre) { showToast('Ingrese un IMO o un nombre de buque', 'error'); return; }
+
+      if (!imo && nombre) {
+        var match = buquesList.find(function(b) { return b.nombre && b.nombre.toString().toLowerCase() === nombre.toLowerCase(); });
+        if (match) { seleccionarBuque(match); showToast('Buque encontrado.', 'success'); return; }
+        document.getElementById('nombreBuque').value = nombre;
+        document.getElementById('esNuevo').value = 'true';
+        document.getElementById('buqueInfo').style.display = 'none';
+        document.getElementById('newBuqueAlert').style.display = 'block';
+        showToast('Buque no encontrado, se cargará como nuevo.', 'error');
+        return;
+      }
+
+      showLoading('Buscando buque...');
+      apiGet('getBuqueByIMO', { imo: imo }).then(function(b) {
+        hideLoading();
+        if (b) { seleccionarBuque(b); showToast('Buque encontrado.', 'success'); }
+        else { document.getElementById('imo').value = imo; document.getElementById('esNuevo').value = 'true'; document.getElementById('buqueInfo').style.display = 'none'; document.getElementById('newBuqueAlert').style.display = 'block'; showToast('Buque no encontrado.', 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function seleccionarBuque(b) {
+      document.getElementById('nombreBuque').value = b.nombre || '';
+      document.getElementById('senalDist').value = b.senal || '';
+      document.getElementById('bandera').value = b.bandera || '';
+      document.getElementById('imo').value = b.imo || '';
+      document.getElementById('tipoCarga').value = b.tipo || '';
+      document.getElementById('capacidad').value = b.capacidad || '';
+      document.getElementById('esNuevo').value = 'false';
+      document.getElementById('buqueInfo').style.display = 'block';
+      document.getElementById('buqueInfoDetails').textContent = b.nombre + ' | ' + b.bandera + ' | ' + (b.senal || 'N/A');
+      document.getElementById('newBuqueAlert').style.display = 'none';
+    }
+
+    // WIZARD
+    function renderWizardProgress() {
+      var c = document.getElementById('wizardProgress');
+      c.innerHTML = '';
+      for (var i = 1; i <= WIZARD_TOTAL_STEPS; i++) {
+        var dot = document.createElement('div');
+        dot.className = 'wizard-step-dot' + (i < wizardStep ? ' done' : '') + (i === wizardStep ? ' current' : '');
+        dot.innerHTML = '<div class="wizard-line"></div><div class="circle">' + (i < wizardStep ? '✓' : i) + '</div><div class="label">' + wizardLabels[i-1] + '</div>';
+        c.appendChild(dot);
+      }
+    }
+
+    function validateStep(step) {
+      var panel = document.querySelector('.wizard-panel[data-step="' + step + '"]');
+      var invalid = panel.querySelectorAll('input:required, select:required');
+      for (var i = 0; i < invalid.length; i++) {
+        if (!invalid[i].value || (invalid[i].pattern && !(new RegExp('^' + invalid[i].pattern + '$')).test(invalid[i].value))) {
+          invalid[i].reportValidity();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function goToStep(step) {
+      document.querySelectorAll('.wizard-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.querySelector('.wizard-panel[data-step="' + step + '"]').classList.add('active');
+      wizardStep = step;
+      renderWizardProgress();
+      document.getElementById('btnAtras').style.visibility = step === 1 ? 'hidden' : 'visible';
+      document.getElementById('btnSiguiente').style.display = step === WIZARD_TOTAL_STEPS ? 'none' : 'inline-block';
+      document.getElementById('btnGuardar').style.display = step === WIZARD_TOTAL_STEPS ? 'inline-block' : 'none';
+      if (step === WIZARD_TOTAL_STEPS) renderReview();
+    }
+
+    function nextStep() {
+      if (wizardStep < WIZARD_TOTAL_STEPS) {
+        if (wizardStep > 1 && !validateStep(wizardStep)) return;
+        goToStep(wizardStep + 1);
+      }
+    }
+    function prevStep() { if (wizardStep > 1) goToStep(wizardStep - 1); }
+
+    function renderReview() {
+      var box = document.getElementById('reviewBox');
+      var fields = [
+        ['Buque', document.getElementById('nombreBuque').value],
+        ['IMO', document.getElementById('imo').value],
+        ['Bandera', document.getElementById('bandera').value],
+        ['Tipo de Carga', document.getElementById('tipoCarga').value],
+        ['Fecha Amarre', document.getElementById('fechaAmarre').value],
+        ['Hora Amarre', document.getElementById('horaAmarre').value],
+        ['Puerto', document.getElementById('puerto').value],
+        ['Cantidad (Tns)', document.getElementById('cantidadDescargada').value],
+        ['Procedencia', document.getElementById('procedencia').value]
+      ];
+      var html = '<dl>';
+      fields.forEach(function(f) { html += '<div><dt>' + f[0] + '</dt><dd>' + (f[1] || '—') + '</dd></div>'; });
+      html += '</dl>';
+      box.innerHTML = html;
+    }
+
+    // PROCEDENCIA
+    function normalizarProcedencia(inputId) {
+      var el = document.getElementById(inputId);
+      if (!el) return;
+      el.value = el.value.toUpperCase();
+      if (/\s*-\s*/.test(el.value)) {
+        el.style.borderColor = 'var(--danger)';
+      } else {
+        el.style.borderColor = '';
+      }
+    }
+    function validarProcedencia(valor) {
+      valor = (valor || '').trim().toUpperCase();
+      if (!valor) return { ok: false, msg: 'Ingrese la procedencia' };
+      if (/\s*-\s*/.test(valor)) {
+        return { ok: false, msg: 'La procedencia debe ser solo el PAÍS. No ingrese ciudad ni separador con guión.' };
+      }
+      return { ok: true, value: valor };
+    }
+
+    // TONELADA - formateo con punto de miles
+    function formatTonelada(inputId) {
+      var el = document.getElementById(inputId);
+      if (!el) return;
+      var raw = el.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+      if (!raw) { el.value = ''; return; }
+      el.value = parseInt(raw).toLocaleString('es-AR');
+    }
+
+    // GUARDAR
+    function guardarIngreso() {
+      if (!validateStep(2) || !validateStep(3) || !validateStep(4)) return;
+      var valProc = validarProcedencia(document.getElementById('procedencia').value);
+      if (!valProc.ok) { showToast(valProc.msg, 'error'); return; }
+      var btn = document.getElementById('btnGuardar'); btn.disabled = true; showLoading('Guardando...');
+      var tieneZarpa = document.getElementById('fechaZarpada').value ? true : false;
+      var d = {
+        dependencia: 'ESCO', nombreBuque: document.getElementById('nombreBuque').value, senal: document.getElementById('senalDist').value,
+        bandera: document.getElementById('bandera').value, imo: document.getElementById('imo').value, tipoCarga: document.getElementById('tipoCarga').value,
+        capacidad: document.getElementById('capacidad').value, fechaAmarre: document.getElementById('fechaAmarre').value, horaAmarre: document.getElementById('horaAmarre').value,
+        puerto: document.getElementById('puerto').value, cantidadDescargada: (document.getElementById('cantidadDescargada').value || '0').replace(/\./g, ''), procedencia: valProc.value,
+        fechaZarpada: document.getElementById('fechaZarpada').value, horaZarpada: document.getElementById('horaZarpada').value, observaciones: document.getElementById('observaciones').value,
+        estado: tieneZarpa ? 'Completado' : 'Amarre',
+        esNuevo: document.getElementById('esNuevo').value === 'true'
+      };
+      apiPost('guardarDescarga', d).then(function(r) {
+        hideLoading(); btn.disabled = false;
+        if (r.success) { showToast('Registro guardado.', 'success'); limpiarFormulario(); cargarAnios(); cargarBuquesList(); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); btn.disabled = false; showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function limpiarFormulario() {
+      document.getElementById('formIngreso').reset(); document.getElementById('imoInput').value = ''; document.getElementById('nombreInput').value = '';
+      document.getElementById('buqueInfo').style.display = 'none'; document.getElementById('newBuqueAlert').style.display = 'none';
+      document.getElementById('esNuevo').value = 'false';
+      goToStep(1);
+    }
+
+    function verDetalleResumen(tipo) {
+      var anio = currentDashYear;
+      if (!anio || anio === 'all') { showToast('Seleccioná un año específico para ver el detalle', 'error'); return; }
+      showLoading('Cargando detalle...');
+      apiGet('getDetalleResumen', { anio: anio, tipo: tipo }).then(function(data) {
+        hideLoading();
+        renderDetalleResumen(tipo, data || []);
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function renderDetalleResumen(tipo, data) {
+      var titulos = { previstos: 'Buques Previstos', ingresados: 'Buques Ingresados', cumplidos: 'Buques Cumplidos', pendientes: 'Buques Pendientes' };
+      document.getElementById('tituloDetalleResumen').textContent = titulos[tipo] || 'Detalle';
+      var t = document.getElementById('detalleResumenBody');
+      if (!data.length) { t.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 1rem;">No hay registros</td></tr>'; abrirModal('modalDetalleResumen'); return; }
+      var html = '';
+      for (var i = 0; i < data.length; i++) {
+        var item = data[i];
+        var estadoClass = (item.estado || '').toLowerCase();
+        html += '<tr>';
+        html += '<td style="padding: 0.5rem; border-bottom: 1px solid var(--border); font-weight: 600;">' + (item.buque || '') + '</td>';
+        html += '<td style="padding: 0.5rem; border-bottom: 1px solid var(--border);">' + (item.imo || '') + '</td>';
+        html += '<td style="padding: 0.5rem; border-bottom: 1px solid var(--border);">' + (item.fecha || '') + '</td>';
+        html += '<td style="padding: 0.5rem; border-bottom: 1px solid var(--border);"><span class="status-badge status-' + estadoClass + '">' + (item.estado || '') + '</span></td>';
+        html += '</tr>';
+      }
+      t.innerHTML = html;
+      abrirModal('modalDetalleResumen');
+    }
+
+    // DASHBOARD
+    function cargarDashboard(anio) {
+      showLoading('Cargando...');
+      apiGet('getEstadisticas', { anio: anio }).then(function(s) { renderDashboard(s); cargarResumen(anio); })
+        .catch(function(e) { hideLoading(); console.error(e); });
+    }
+
+    function cargarResumen(anio) {
+      if (anio === 'all') { document.getElementById('resumenPrevistos').style.display = 'none'; hideLoading(); return; }
+      apiGet('getResumenPrevistos', { anio: anio }).then(function(r) {
+        if (!r.previstos) { document.getElementById('resumenPrevistos').style.display = 'none'; hideLoading(); return; }
+        document.getElementById('resumenPrevistos').style.display = 'grid';
+        document.getElementById('resPrevistos').textContent = r.previstos;
+        document.getElementById('resIngresados').textContent = r.ingresados;
+        document.getElementById('resCumplidos').textContent = r.cumplidos;
+        document.getElementById('resPendientes').textContent = r.pendientes;
+        hideLoading();
+      }).catch(function() { hideLoading(); });
+    }
+
+    function renderDashboard(s) {
+      if (!s) { document.getElementById('statTotalBuques').textContent = '0'; document.getElementById('statTotalToneladas').textContent = '0'; document.getElementById('statTotalM3').textContent = '0'; document.getElementById('statPromedio').textContent = '0'; Object.values(charts).forEach(function(c) { c.destroy(); }); charts = {}; return; }
+      dashData = s;
+      renderMonthButtons(s);
+      document.getElementById('statTotalBuques').textContent = s.totalBuques;
+      document.getElementById('statTotalToneladas').textContent = s.totalToneladas.toLocaleString();
+      document.getElementById('statTotalM3').textContent = Math.round(s.totalToneladas * 2.23).toLocaleString();
+      document.getElementById('statPromedio').textContent = s.promedioDescarga.toLocaleString();
+      renderCharts(s);
+    }
+
+    function renderMonthButtons(s) {
+      var c = document.getElementById('monthFilter');
+      c.innerHTML = '<span>Filtrar por año:</span>';
+      var allBtn = document.createElement('button');
+      allBtn.className = 'year-btn active'; allBtn.textContent = 'Todos';
+      allBtn.onclick = function() { currentDashChartYear = 'all'; updateMonthBtns(); renderCharts(dashData); };
+      c.appendChild(allBtn);
+      var years = {};
+      Object.keys(s.porMes || {}).forEach(function(k) { var y = k.split('-')[0]; years[y] = true; });
+      Object.keys(years).sort(function(a, b) { return parseInt(a) - parseInt(b); }).forEach(function(y) {
+        var btn = document.createElement('button');
+        btn.className = 'year-btn'; btn.textContent = y; btn.dataset.year = y;
+        btn.onclick = (function(yr) { return function() { currentDashChartYear = yr; updateMonthBtns(); renderCharts(dashData); }; })(y);
+        c.appendChild(btn);
+      });
+    }
+
+    function updateMonthBtns() {
+      document.getElementById('monthFilter').querySelectorAll('.year-btn').forEach(function(b) {
+        b.classList.remove('active');
+        if ((b.textContent === 'Todos' && currentDashChartYear === 'all') || b.dataset.year === currentDashChartYear) b.classList.add('active');
+      });
+    }
+
+    function renderCharts(s) {
+      Object.values(charts).forEach(function(c) { c.destroy(); }); charts = {};
+      var porMes = s.porMes || {};
+      if (currentDashChartYear !== 'all') {
+        var filtered = {};
+        Object.keys(porMes).forEach(function(k) { if (k.indexOf(currentDashChartYear) === 0) filtered[k] = porMes[k]; });
+        porMes = filtered;
+      }
+      var meses = Object.keys(porMes).sort();
+      var textColor = '#8ea6b0';
+      if (meses.length) charts.porMes = new Chart(document.getElementById('chartPorMes'), { type: 'line', data: { labels: meses, datasets: [{ label: 'Toneladas', data: meses.map(function(m) { return porMes[m]; }), borderColor: '#2bd4c4', backgroundColor: 'rgba(43,212,196,0.15)', tension: 0.3, fill: true }] }, options: { responsive: true, plugins: { legend: { labels: { color: textColor } } }, scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor } } } } });
+      var banderas = Object.keys(s.porBandera);
+      if (banderas.length) {
+        var topBanderas = banderas.map(function(b) { return [b, s.porBandera[b]]; }).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 10);
+        var banderaNames = topBanderas.map(function(b) { return b[0]; });
+        var flagCache = {};
+        function getFlagImg(code) {
+          if (flagCache[code]) return flagCache[code];
+          var img = new Image();
+          img.src = 'https://flagcdn.com/24x18/' + code.toLowerCase() + '.png';
+          flagCache[code] = img;
+          return img;
+        }
+        var flagImgPlugin = { id: 'flagImages', afterDraw: function(chart) {
+          var yAxis = chart.scales.y;
+          var ctx = chart.ctx;
+          var meta = chart.getDatasetMeta(0);
+          for (var i = 0; i < banderaNames.length; i++) {
+            var iso = getBanderaISO(banderaNames[i]);
+            if (!iso || !meta.data[i]) continue;
+            var yPos = meta.data[i].y;
+            var img = getFlagImg(iso);
+            if (img.complete) {
+              ctx.drawImage(img, yAxis.left + 2, yPos - 7, 22, 15);
+            } else {
+              img.onload = function() { chart.draw(); };
+            }
+          }
+        } };
+        charts.porBandera = new Chart(document.getElementById('chartPorBandera'), { type: 'bar', data: { labels: banderaNames, datasets: [{ label: 'Buques', data: topBanderas.map(function(b) { return b[1]; }), backgroundColor: '#1b7089' }] }, options: { responsive: true, indexAxis: 'y', layout: { padding: { left: 26 } }, plugins: { legend: { display: false }, tooltip: { usePointStyle: true, callbacks: { title: function(items) { if (!items.length) return ''; return banderaNames[items[0].dataIndex] || ''; }, afterTitle: function(items) { if (!items.length) return ''; var iso = getBanderaISO(banderaNames[items[0].dataIndex] || ''); return iso ? '[' + iso + ']' : ''; }, label: function(item) { return ' Buques: ' + item.raw; } } } }, scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor, autoSkip: false, font: { size: 12 }, padding: 26 } } } }, plugins: [flagImgPlugin] });
+      }
+      var procs = Object.keys(s.porProcedencia);
+      if (procs.length) {
+        var topProcs = procs.map(function(p) { return [p, s.porProcedencia[p]]; }).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 10);
+        charts.porProcedencia = new Chart(document.getElementById('chartPorProcedencia'), { type: 'bar', data: { labels: topProcs.map(function(p) { return p[0]; }), datasets: [{ label: 'Buques', data: topProcs.map(function(p) { return p[1]; }), backgroundColor: '#3f9c6d' }] }, options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor, autoSkip: false } } } } });
+      }
+      if (s.topBuques.length) charts.topBuques = new Chart(document.getElementById('chartTopBuques'), { type: 'bar', data: { labels: s.topBuques.map(function(b) { return b[0]; }), datasets: [{ label: 'Viajes', data: s.topBuques.map(function(b) { return b[1]; }), backgroundColor: '#d9a441' }] }, options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { color: textColor } }, y: { ticks: { color: textColor, autoSkip: false } } } } });
+    }
+
+    function genColors(n) { var c = ['#1b7089','#3f9c6d','#d9a441','#c1533f','#2bd4c4','#8e6fc9','#5a7280','#c98f5a','#4a90a4','#c95a8f']; while (c.length < n) c.push('#' + Math.floor(Math.random()*16777215).toString(16)); return c.slice(0, n); }
+
+    var BANDERA_ISO = {
+      'GRECIA':'GR','ESPAÑA':'ES','ISLAS MARSHAL':'MH','NORUEGA':'NO','SINGAPUR':'SG',
+      'BERMUDAS':'BM','BELGICA':'BE','LIBERIA':'LR','TRINIDAD Y TOBAGO':'TT','QATAR':'QA',
+      'AFGANISTAN':'AF','FRANCIA':'FR','ITALIA':'IT','PAISES BAJOS':'NL','JAPON':'JP',
+      'CHINA':'CN','COREA DEL SUR':'KR','REINO UNIDO':'GB','ESTADOS UNIDOS':'US',
+      'ALEMANIA':'DE','ARGENTINA':'AR','BRASIL':'BR','MEXICO':'MX','CHILE':'CL',
+      'URUGUAY':'UY','PANAMA':'PA','HONG KONG':'HK','RUSIA':'RU','TURQUIA':'TR',
+      'INDIA':'IN','INDONESIA':'ID','FILIPINAS':'PH','MALASIA':'MY','TAILANDIA':'TH',
+      'VIETNAM':'VN','COLOMBIA':'CO','PERU':'PE','VENEZUELA':'VE','ECUADOR':'EC',
+      'BOLIVIA':'BO','PARAGUAY':'PY','CUBA':'DO','JAMAICA':'JM','HAITI':'HT',
+      'REPUBLICA DOMINICANA':'DO','COSTA RICA':'CR','HONDURAS':'HN','GUATEMALA':'GT',
+      'EL SALVADOR':'SV','NICARAGUA':'NI','ISLAS CAIMAN':'KY','BAHAMAS':'BS',
+      'BARBADOS':'BB','ARUBA':'AW','CURAZAO':'CW','SAN MARTIN':'SX',
+      'SAN VICENTE Y LAS GRANADINAS':'VC','SAN CRISTOBAL Y NIEVES':'KN',
+      'SAN LUCIA':'LC','ANTIGUA Y BARBUDA':'AG','DOMINICA':'DM','GRENADA':'GD',
+      'MONTSERRAT':'MS','ISLAS VIRGENES BRITANICAS':'VG','ISLAS VIRGENES DE EE.UU.':'VI',
+      'ISLAS TURKAS Y CAICOS':'TC','ISLAS COOK':'CK','FIJI':'FJ',
+      'ISLAS SALOMON':'SB','PAPUA NUEVA GUINEA':'PG','SAMOA':'WS',
+      'TONGA':'TU','VANUATU':'VU','NAURU':'NR','TUVALU':'TV',
+      'MICRONESIA':'FM','KIRIBATI':'KI','PALAU':'PW','MARSHALL':'MH',
+      'AUSTRALIA':'AU','NUEVA ZELANDA':'NZ',
+      'SUDAFRICA':'ZA','NIGERIA':'NG','EGIPTO':'EG','MARRUECOS':'MA',
+      'ARGELIA':'DZ','TUNEZ':'TN','LIBIA':'LY','KENIA':'KE',
+      'ETIOPIA':'ET','GHANA':'GH','TANZANIA':'TZ','CAMERUN':'CM',
+      'COSTA DE MARFIL':'CI','SENEGAL':'SN','ANGOLA':'AO','MOZAMBIQUE':'MZ',
+      'ZIMBABWE':'ZW','ZAMBIA':'ZM','BOTSWANA':'BW','NAMIBIA':'NA',
+      'MAURICIO':'MU','SEYCHELLES':'SC','COMORES':'KM','MADAGASCAR':'MG',
+      'REUNION':'RE','MAYOTTE':'YT',
+      'ARABIA SAUDITA':'SA','EMIRATOS ARABES UNIDOS':'AE','BAHREIN':'BH',
+      'KUWAIT':'KW','OMAN':'OM','JORDAN':'JO','LIBANO':'LB','SIRIA':'SY',
+      'IRAQ':'IQ','IRAN':'IR','ISRAEL':'IL','FILIPINAS':'PH',
+      'PAKISTAN':'PK','BANGLADES':'BD','SRI LANKA':'LK','NEPAL':'NP',
+      'MIANMAR':'MM','CAMBODIA':'KH','LAOS':'LA','MONGOLIA':'MN',
+      'COREA DEL NORTE':'KP','TAIWAN':'TW','BRUNEI':'BN',
+      'SUECIA':'SE','NORUEGA':'NO','DINAMARCA':'DK','FINLANDIA':'FI',
+      'ISLANDIA':'IS','IRLANDA':'IE','PORTUGAL':'PT','SUIZA':'CH',
+      'AUSTRIA':'AT','POLONIA':'PL','CHECA':'CZ','REPUBLICA CHECA':'CZ',
+      'ESLOVAQUIA':'SK','ESLOVENIA':'SI','CROACIA':'HR','SERBIA':'RS',
+      'MONTENEGRO':'ME','BOSNIA Y HERZEGOVINA':'BA','ALBANIA':'AL',
+      'MACEDONIA':'MK','KOSOVO':'XK','BULGARIA':'BG','RUMANIA':'RO',
+      'HUNGRIA':'HU','UCRANIA':'UA','BIELORRUSIA':'BY','MOLDOVA':'MD',
+      'ESTONIA':'EE','LETONIA':'LV','LITUANIA':'LT',
+      'CIPRO':'CY','MALTA':'MT','LUXEMBURGO':'LU','MONACO':'MC',
+      'ANDORRA':'AD','LIECHTENSTEIN':'LI','SAN MARINO':'SM','VATICANO':'VA',
+      'ISLAS FAROE':'FO','GROENLANDIA':'GL',
+      'CANADA':'CA','GUAM':'GU','SAMOA AMERICANA':'AS','TOKELAU':'TK',
+      'WALLIS Y FUTUNA':'WF','POLINESIA FRANCESA':'PF','NUEVA CALEDONIA':'NC',
+      'GUYANA':'GY','SURINAM':'SR','GUIANA FRANCESA':'GF',
+      'ISLAS DEL CANAL':'JE','ISLE OF MAN':'IM',
+      'AFRICA DEL SUR':'ZA','HOLANDA':'NL','RUSIA':'RU',
+      'ISLAS MARSHALL':'MH','TRINIDAD':'TT','CUBA':'CU'
+    };
+    function getBanderaISO(nombre) {
+      var key = (nombre||'').toUpperCase().trim();
+      if (BANDERA_ISO[key]) return BANDERA_ISO[key];
+      var parts = key.split(/\s+/);
+      for (var k in BANDERA_ISO) {
+        if (k.indexOf(key) !== -1 || key.indexOf(k) !== -1) return BANDERA_ISO[k];
+        var kParts = k.split(/\s+/);
+        if (parts.length === 1 && kParts.length > 1 && kParts.indexOf(parts[0]) !== -1) return BANDERA_ISO[k];
+        if (kParts.length === 1 && parts.length > 1 && parts.indexOf(kParts[0]) !== -1) return BANDERA_ISO[k];
+      }
+      return '';
+    }
+    function banderaImgUrl(nombre) {
+      var iso = getBanderaISO(nombre);
+      if (!iso) return '';
+      return 'https://flagcdn.com/24x18/' + iso.toLowerCase() + '.png';
+    }
+    function banderaImgTag(nombre, h) {
+      var url = banderaImgUrl(nombre);
+      if (!url) return '';
+      h = h || 14;
+      return '<img src="' + url + '" style="width:' + (h * 1.5) + 'px;height:' + h + 'px;vertical-align:middle;margin-right:4px;border:1px solid var(--border);border-radius:2px;">';
+    }
+
+    // HISTORIAL
+    function cargarHistorial(anio) {
+      showLoading('Cargando historial...');
+      apiGet('getHistorial', { anio: anio }).then(function(d) { hideLoading(); historialData = d || []; histPage = 1; filterHistorial(); })
+        .catch(function(e) { hideLoading(); alert('Error: ' + e.message); });
+    }
+
+    function filterHistorial() {
+      var q = (document.getElementById('histSearch').value || '').toLowerCase().trim();
+      var filtered = historialData;
+      if (q) {
+        filtered = historialData.filter(function(r) {
+          return ((r['Nombre Buque'] || '').toLowerCase().indexOf(q) !== -1) ||
+                 ((r.IMO || '').toString().indexOf(q) !== -1) ||
+                 ((r['Señal Distintiva'] || '').toLowerCase().indexOf(q) !== -1);
+        });
+      }
+      histFiltered = filtered;
+      histPage = 1;
+      renderResumenHistorial(q);
+      sortAndRenderHistorial();
+    }
+
+    function renderResumenHistorial(q) {
+      var el = document.getElementById('histResumen');
+      if (!q || !histFiltered.length) { el.style.display = 'none'; return; }
+      var totalMovimientos = histFiltered.length;
+      var totalDescarga = 0;
+      var totalObservaciones = 0;
+      for (var i = 0; i < histFiltered.length; i++) {
+        var cant = parseFloat((histFiltered[i]['Cantidad Descargada (Tns)'] || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
+        totalDescarga += cant;
+        var obs = (histFiltered[i].Observaciones || '').toString();
+        var matchObs = obs.match(/[\d.,]+/g);
+        if (matchObs) {
+          for (var j = 0; j < matchObs.length; j++) {
+            var numObs = parseFloat(matchObs[j].replace(/\./g, '').replace(',', '.')) || 0;
+            totalObservaciones += numObs;
+          }
+        }
+      }
+      var totalGeneral = totalDescarga + totalObservaciones;
+      var totalM3 = Math.round(totalGeneral * 2.23);
+      var nombreBuque = histFiltered[0]['Nombre Buque'] || q.toUpperCase();
+      var imo = histFiltered[0].IMO || '';
+      var html = '<div class="res-item"><span class="res-label">Buque</span><span class="res-value">' + nombreBuque + (imo ? ' (' + imo + ')' : '') + '</span></div>'
+        + '<div class="res-item"><span class="res-label">Movimientos</span><span class="res-value">' + totalMovimientos + '</span></div>'
+        + '<div class="res-item"><span class="res-label">Total Descargado (Tns)</span><span class="res-value">' + totalDescarga.toLocaleString() + '</span></div>';
+      if (totalObservaciones > 0) {
+        html += '<div class="res-item"><span class="res-label">Observaciones (Tns)</span><span class="res-value" style="color: var(--warning);">' + totalObservaciones.toLocaleString() + '</span></div>';
+      }
+      html += '<div class="res-item"><span class="res-label">TOTAL (Tns)</span><span class="res-value" style="color: var(--accent); font-size: 1.5rem;">' + totalGeneral.toLocaleString() + '</span></div>'
+        + '<div class="res-item"><span class="res-label">TOTAL (m³)</span><span class="res-value" style="color: var(--accent); font-size: 1.5rem;">' + totalM3.toLocaleString() + '</span></div>';
+      el.innerHTML = html;
+      el.style.display = 'flex';
+    }
+
+    function sortHistorial(col) {
+      if (histSortCol === col) { histSortDir *= -1; } else { histSortCol = col; histSortDir = 1; }
+      histPage = 1;
+      sortAndRenderHistorial();
+    }
+
+    function sortAndRenderHistorial() {
+      document.querySelectorAll('#tablaHistorial .arrow').forEach(function(a) { a.textContent = ''; });
+      var arrowEl = document.getElementById('arrow-' + histSortCol);
+      if (arrowEl) arrowEl.textContent = histSortDir === 1 ? '▲' : '▼';
+
+      var sorted = histFiltered.slice().sort(function(a, b) {
+        var va = a[histSortCol], vb = b[histSortCol];
+        var na = parseFloat(va), nb = parseFloat(vb);
+        if (!isNaN(na) && !isNaN(nb) && va !== '' && vb !== '') { return (na - nb) * histSortDir; }
+        va = (va || '').toString().toLowerCase(); vb = (vb || '').toString().toLowerCase();
+        if (va < vb) return -1 * histSortDir;
+        if (va > vb) return 1 * histSortDir;
+        return 0;
+      });
+      renderHistorial(sorted);
+    }
+
+    function renderHistorial(data) {
+      var t = document.getElementById('historialBody');
+      var colspan = isAdmin() ? 11 : 10;
+      if (!data.length) { t.innerHTML = '<tr><td colspan="' + colspan + '" style="text-align: center;">No hay registros</td></tr>'; document.getElementById('histPager').innerHTML = ''; return; }
+
+      var totalPages = Math.max(1, Math.ceil(data.length / HIST_PAGE_SIZE));
+      if (histPage > totalPages) histPage = totalPages;
+      var start = (histPage - 1) * HIST_PAGE_SIZE;
+      var pageData = data.slice(start, start + HIST_PAGE_SIZE);
+
+      var html = '';
+      for (var i = 0; i < pageData.length; i++) {
+        var r = pageData[i];
+        var filaReal = r._fila;
+        html += '<tr>';
+        html += '<td>' + (r.ID||'') + '</td>';
+        html += '<td>' + (r['Nombre Buque']||'') + '</td>';
+        html += '<td>' + (r.IMO||'') + '</td>';
+        html += '<td>' + (r['Señal Distintiva']||'') + '</td>';
+        html += '<td>' + (r.Bandera||'') + '</td>';
+        html += '<td>' + (r['Fecha Amarre']||'') + '</td>';
+        html += '<td>' + (r['Hora Amarre']||'') + '</td>';
+        html += '<td>' + (r['Puerto/Terminal']||'') + '</td>';
+        html += '<td>' + (r['Cantidad Descargada (Tns)']||'') + '</td>';
+        html += '<td><span class="status-badge status-' + (r.Estado||'').toLowerCase() + '">' + (r.Estado||'') + '</span></td>';
+        if (isAdmin()) {
+          html += '<td class="previsto-acciones">';
+          html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarIngreso(' + filaReal + ')">Editar</button> ';
+          html += '<button class="btn btn-danger btn-sm" onclick="confirmarEliminarIngreso(' + filaReal + ')">X</button>';
+          html += '</td>';
+        }
+        html += '</tr>';
+      }
+      t.innerHTML = html;
+      renderPager(totalPages, data.length);
+    }
+
+    function renderPager(totalPages, totalItems) {
+      var p = document.getElementById('histPager');
+      var html = '';
+      html += '<button ' + (histPage === 1 ? 'disabled' : '') + ' onclick="changeHistPage(' + (histPage - 1) + ')">‹ Anterior</button>';
+      var maxButtons = 7;
+      var startPage = Math.max(1, histPage - 3);
+      var endPage = Math.min(totalPages, startPage + maxButtons - 1);
+      startPage = Math.max(1, endPage - maxButtons + 1);
+      for (var i = startPage; i <= endPage; i++) {
+        html += '<button class="' + (i === histPage ? 'active' : '') + '" onclick="changeHistPage(' + i + ')">' + i + '</button>';
+      }
+      html += '<button ' + (histPage === totalPages ? 'disabled' : '') + ' onclick="changeHistPage(' + (histPage + 1) + ')">Siguiente ›</button>';
+      html += '<span class="info">' + totalItems + ' registros · página ' + histPage + ' de ' + totalPages + '</span>';
+      p.innerHTML = html;
+    }
+
+    function changeHistPage(p) { histPage = p; sortAndRenderHistorial(); }
+
+    function exportarHistorialCSV() {
+      if (!histFiltered.length) { showToast('No hay datos para exportar', 'error'); return; }
+      var cols = ['ID','Nombre Buque','IMO','Señal Distintiva','Bandera','Fecha Amarre','Hora Amarre','Puerto/Terminal','Cantidad Descargada (Tns)','Procedencia','Fecha Zarpada','Hora Zarpada','Estado','Observaciones'];
+      var lines = [cols.join(';')];
+      histFiltered.forEach(function(r) {
+        lines.push(cols.map(function(c) { var v = (r[c] !== undefined && r[c] !== null) ? r[c].toString() : ''; return '"' + v.replace(/"/g, '""') + '"'; }).join(';'));
+      });
+      var q = (document.getElementById('histSearch').value || '').trim();
+      if (q && histFiltered.length) {
+        var totalDescarga = 0;
+        var totalObservaciones = 0;
+        for (var i = 0; i < histFiltered.length; i++) {
+          var cant = parseFloat((histFiltered[i]['Cantidad Descargada (Tns)'] || '0').toString().replace(/\./g, '').replace(',', '.')) || 0;
+          totalDescarga += cant;
+          var obs = (histFiltered[i].Observaciones || '').toString();
+          var matchObs = obs.match(/[\d.,]+/g);
+          if (matchObs) {
+            for (var j = 0; j < matchObs.length; j++) {
+              var numObs = parseFloat(matchObs[j].replace(/\./g, '').replace(',', '.')) || 0;
+              totalObservaciones += numObs;
+            }
+          }
+        }
+        var totalGeneral = totalDescarga + totalObservaciones;
+        var totalM3 = Math.round(totalGeneral * 2.23);
+        lines.push('');
+        lines.push('"RESUMEN DEL BUQUE";"";"";"";"";"";"";"";"";"";"";"";"";""');
+        lines.push('"Movimientos";"' + histFiltered.length + '";"";"";"";"";"";"";"";"";"";"";"";""');
+        lines.push('"Total Descargado (Tns)";"' + totalDescarga.toFixed(3) + '";"";"";"";"";"";"";"";"";"";"";"";""');
+        if (totalObservaciones > 0) {
+          lines.push('"Observaciones (Tns)";"' + totalObservaciones.toFixed(3) + '";"";"";"";"";"";"";"";"";"";"";"";""');
+        }
+        lines.push('"TOTAL (Tns)";"' + totalGeneral.toFixed(3) + '";"";"";"";"";"";"";"";"";"";"";"";""');
+        lines.push('"TOTAL (m³)";"' + totalM3 + '";"";"";"";"";"";"";"";"";"";"";"";""');
+      }
+      var blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = 'historial_buques_' + new Date().toISOString().slice(0,10) + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('CSV exportado.', 'success');
+    }
+
+    // PREVISTOS
+    function cargarPrevistos(anio) {
+      apiGet('getPrevistos', { anio: anio || 'all' }).then(function(d) { renderPrevistos(d || []); })
+        .catch(function(e) { console.error(e); });
+    }
+
+    function renderPrevistos(data) {
+      previstosData = data;
+      var t = document.getElementById('previstosBody');
+      if (!data.length) { t.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay previstos</td></tr>'; return; }
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var html = '';
+      for (var i = 0; i < data.length; i++) {
+        var p = data[i];
+        var filaReal = p._fila;
+        var estadoDisplay = p.estado;
+        var estadoClass = (p.estado || '').toLowerCase();
+        if (p.estado === 'Pendiente' && p.fechaPrevista) {
+          var fp = new Date(p.fechaPrevista);
+          if (!isNaN(fp.getTime()) && fp < hoy) { estadoDisplay = 'Vencido'; estadoClass = 'vencido'; }
+        }
+        html += '<tr>';
+        html += '<td>' + (p.anio||'') + '</td>';
+        html += '<td style="font-weight: 600;">' + (p.buque||'') + '</td>';
+        html += '<td>' + (p.imo||'') + '</td>';
+        html += '<td>' + (p.fechaPrevista||'') + '</td>';
+        html += '<td><span class="status-badge status-' + estadoClass + '">' + (estadoDisplay||'') + '</span></td>';
+        html += '<td class="previsto-acciones">';
+        if (isAdmin()) {
+          if (p.estado === 'Pendiente' || p.estado === 'Arribó') {
+            html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarPrevisto(' + i + ')">Editar</button> ';
+          }
+          if (p.estado === 'Pendiente') {
+            html += '<button class="btn btn-success btn-sm" onclick="cambiarEstado(' + filaReal + ', \'Arribó\')">Marcar Arribó</button> ';
+          }
+          html += '<button class="btn btn-danger btn-sm" onclick="eliminarPrevisto(' + filaReal + ')">X</button>';
+        }
+        html += '</td></tr>';
+      }
+      t.innerHTML = html;
+    }
+
+    function guardarPrevisto() {
+      var anio = document.getElementById('prevAnio').value;
+      var buque = document.getElementById('prevBuque').value;
+      var imo = document.getElementById('prevIMO').value;
+      var fecha = document.getElementById('prevFecha').value;
+      if (!anio || !buque || !fecha) { showToast('Complete año, buque y fecha', 'error'); return; }
+      showLoading('Guardando...');
+      apiPost('guardarPrevisto', { anio: anio, buque: buque, imo: imo, fechaPrevista: fecha }).then(function(r) {
+        hideLoading();
+        if (r.success) { showToast('Previsto agregado.', 'success'); document.getElementById('prevAnio').value = ''; document.getElementById('prevBuque').value = ''; document.getElementById('prevIMO').value = ''; document.getElementById('prevFecha').value = ''; cargarPrevistos(currentPrevYear); cargarAnios(); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function cambiarEstado(fila, estado) {
+      showLoading('Actualizando...');
+      apiPost('actualizarEstadoPrevisto', { fila: fila, estado: estado }).then(function(r) { hideLoading(); if (r.success) { showToast('Estado actualizado.', 'success'); cargarPrevistos(currentPrevYear); } })
+        .catch(function(e) { hideLoading(); showToast('Error', 'error'); });
+    }
+
+    function eliminarPrevisto(fila) {
+      if (!confirm('¿Eliminar este previsto?')) return;
+      showLoading('Eliminando...');
+      apiPost('eliminarPrevisto', { fila: fila }).then(function(r) { hideLoading(); if (r.success) { showToast('Eliminado.', 'success'); cargarPrevistos(currentPrevYear); cargarAnios(); } })
+        .catch(function(e) { hideLoading(); showToast('Error', 'error'); });
+    }
+
+    var previstosData = [];
+    function abrirEditarPrevisto(idx) {
+      var p = previstosData[idx];
+      if (!p) return;
+      document.getElementById('prevEditFila').value = p._fila;
+      document.getElementById('prevEditBuque').value = p.buque || '';
+      document.getElementById('prevEditIMO').value = p.imo || '';
+      document.getElementById('prevEditFechaPrevista').value = p.fechaPrevista || '';
+      document.getElementById('prevEditFechaAmarre').value = '';
+      document.getElementById('prevEditHoraAmarre').value = '';
+      document.getElementById('prevEditCantidad').value = '';
+      document.getElementById('prevEditProcedencia').value = '';
+      document.getElementById('prevEditSenal').value = '';
+      document.getElementById('prevEditFechaZarpada').value = '';
+      document.getElementById('prevEditHoraZarpada').value = '';
+      document.getElementById('prevEditEstado').value = 'Arribó';
+      document.getElementById('prevEditObservaciones').value = '';
+      cargarConfiguracionSelects();
+      abrirModal('modalEditarPrevisto');
+    }
+
+    function cargarConfiguracionSelects() {
+      apiGet('getConfigOptions').then(function(c) {
+        populateSelect('prevEditPuerto', c.puertos);
+        populateSelect('prevEditBandera', c.banderas);
+        populateSelect('prevEditTipoCarga', c.tipoCarga);
+      }).catch(function(e) { console.error(e); });
+    }
+
+    function guardarEdicionPrevisto() {
+      var fila = parseInt(document.getElementById('prevEditFila').value);
+      var buque = document.getElementById('prevEditBuque').value;
+      var imo = document.getElementById('prevEditIMO').value;
+      var fechaAmarre = document.getElementById('prevEditFechaAmarre').value;
+      var horaAmarre = document.getElementById('prevEditHoraAmarre').value;
+      var puerto = document.getElementById('prevEditPuerto').value;
+      var cantidad = document.getElementById('prevEditCantidad').value.replace(/\./g, '') || '0';
+      var procedencia = document.getElementById('prevEditProcedencia').value;
+      var senal = document.getElementById('prevEditSenal').value;
+      var bandera = document.getElementById('prevEditBandera').value;
+      var tipoCarga = document.getElementById('prevEditTipoCarga').value;
+      var fechaZarpada = document.getElementById('prevEditFechaZarpada').value;
+      var horaZarpada = document.getElementById('prevEditHoraZarpada').value;
+      var estado = document.getElementById('prevEditEstado').value;
+      var observaciones = document.getElementById('prevEditObservaciones').value;
+
+      if (!fechaAmarre || !horaAmarre || !puerto) { showToast('Complete fecha, hora de amarre y puerto', 'error'); return; }
+
+      var payload = {
+        fila: fila,
+        fechaAmarre: fechaAmarre,
+        horaAmarre: horaAmarre,
+        puerto: puerto,
+        cantidadDescargada: cantidad,
+        procedencia: procedencia,
+        senal: senal,
+        bandera: bandera,
+        tipoCarga: tipoCarga,
+        fechaZarpada: fechaZarpada,
+        horaZarpada: horaZarpada,
+        estado: estado,
+        observaciones: observaciones,
+        nombreBuque: buque,
+        imo: imo
+      };
+
+      showLoading('Guardando y creando registro en historial...');
+      apiPost('completarPrevisto', payload).then(function(r) {
+        hideLoading();
+        if (r.success) {
+          showToast('Previsto completado y registrado en historial.', 'success');
+          cerrarModal('modalEditarPrevisto');
+          cargarPrevistos(currentPrevYear);
+          cargarAnios();
+        } else {
+          showToast('Error: ' + (r.error || 'desconocido'), 'error');
+        }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    // ============================================
+    // MODALES - UTILIDADES
+    // ============================================
+    function cerrarModal(id) {
+      document.getElementById(id).classList.remove('active');
+    }
+
+    function abrirModal(id) {
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ============================================
+    // EDITAR / ELIMINAR INGRESOS
+    // ============================================
+    function abrirEditarIngreso(filaReal) {
+      var r = null;
+      for (var k = 0; k < historialData.length; k++) {
+        if (historialData[k]._fila === filaReal) { r = historialData[k]; break; }
+      }
+      if (!r) return;
+      document.getElementById('editHistFila').value = filaReal;
+      document.getElementById('editNombreBuque').value = r['Nombre Buque'] || '';
+      document.getElementById('editSenal').value = r['Señal Distintiva'] || '';
+      document.getElementById('editIMO').value = r.IMO || '';
+      document.getElementById('editFechaAmarre').value = r['Fecha Amarre'] || '';
+      document.getElementById('editHoraAmarre').value = r['Hora Amarre'] || '';
+      document.getElementById('editPuerto').value = r['Puerto/Terminal'] || '';
+      document.getElementById('editCantidadDescargada').value = r['Cantidad Descargada (Tns)'] || '';
+      document.getElementById('editProcedencia').value = r.Procedencia || '';
+      document.getElementById('editFechaZarpada').value = r['Fecha Zarpada'] || '';
+      document.getElementById('editHoraZarpada').value = r['Hora Zarpada'] || '';
+      document.getElementById('editEstado').value = r.Estado || 'Amarre';
+      document.getElementById('editObservaciones').value = r.Observaciones || '';
+
+      if (typeof r.Bandera !== 'undefined') {
+        var sel = document.getElementById('editBandera');
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === r.Bandera) { sel.selectedIndex = i; break; }
+        }
+      }
+      if (typeof r['Tipo Carga'] !== 'undefined') {
+        var sel2 = document.getElementById('editTipoCarga');
+        for (var j = 0; j < sel2.options.length; j++) {
+          if (sel2.options[j].value === r['Tipo Carga']) { sel2.selectedIndex = j; break; }
+        }
+      }
+      abrirModal('modalEditarIngreso');
+    }
+
+    function guardarEdicionIngreso() {
+      var imo = document.getElementById('editIMO').value.trim();
+      if (!/^\d{7}$/.test(imo)) { showToast('El IMO debe tener exactamente 7 dígitos numéricos', 'error'); return; }
+      var qty = parseFloat(document.getElementById('editCantidadDescargada').value.replace(/\./g, ''));
+      if (isNaN(qty) || qty <= 0) { showToast('La cantidad descargada debe ser mayor a 0', 'error'); return; }
+      var valProc = validarProcedencia(document.getElementById('editProcedencia').value);
+      if (!valProc.ok) { showToast(valProc.msg, 'error'); return; }
+
+      var filaReal = parseInt(document.getElementById('editHistFila').value);
+      var r = null;
+      for (var k = 0; k < historialData.length; k++) {
+        if (historialData[k]._fila === filaReal) { r = historialData[k]; break; }
+      }
+      if (!r) { showToast('Error: registro no encontrado', 'error'); return; }
+
+      var payload = {
+        fila: filaReal,
+        dependencia: r.Dependencia || 'ESCO',
+        nombreBuque: document.getElementById('editNombreBuque').value,
+        senal: document.getElementById('editSenal').value,
+        bandera: document.getElementById('editBandera').value,
+        imo: imo,
+        tipoCarga: document.getElementById('editTipoCarga').value,
+        fechaAmarre: document.getElementById('editFechaAmarre').value,
+        horaAmarre: document.getElementById('editHoraAmarre').value,
+        puerto: document.getElementById('editPuerto').value,
+        cantidadDescargada: qty,
+        procedencia: valProc.value,
+        fechaZarpada: document.getElementById('editFechaZarpada').value,
+        horaZarpada: document.getElementById('editHoraZarpada').value,
+        estado: document.getElementById('editEstado').value,
+        observaciones: document.getElementById('editObservaciones').value
+      };
+
+      showLoading('Guardando cambios...');
+      apiPost('editarDescarga', payload).then(function(r) {
+        hideLoading();
+        if (r.success) { showToast('Ingreso actualizado.', 'success'); cerrarModal('modalEditarIngreso'); cargarHistorial(currentHistYear); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function confirmarEliminarIngreso(filaReal) {
+      var r = null;
+      for (var k = 0; k < historialData.length; k++) {
+        if (historialData[k]._fila === filaReal) { r = historialData[k]; break; }
+      }
+      if (!r) return;
+      if (!confirm('¿Eliminar el ingreso de "' + (r['Nombre Buque'] || '') + '" (IMO: ' + (r.IMO || '') + ')?\n\nEsta acción no se puede deshacer.')) return;
+      showLoading('Eliminando...');
+      apiPost('eliminarDescarga', { fila: filaReal }).then(function(res) {
+        hideLoading();
+        if (res.success) { showToast('Ingreso eliminado.', 'success'); cargarHistorial(currentHistYear); }
+        else { showToast('Error: ' + (res.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    // ============================================
+    // EDITAR / ELIMINAR BUQUES
+    // ============================================
+    function abrirEditarBuque(rowIdx) {
+      var b = buquesList[rowIdx];
+      if (!b) return;
+      document.getElementById('editBuqueFila').value = b.fila !== undefined ? b.fila : rowIdx;
+      document.getElementById('editBuqueNombre').value = b.nombre || '';
+      document.getElementById('editBuqueSenal').value = b.senal || '';
+      document.getElementById('editBuqueIMO').value = b.imo || '';
+      document.getElementById('editBuqueCapacidad').value = b.capacidad || '';
+
+      if (b.bandera) {
+        var sel = document.getElementById('editBuqueBandera');
+        for (var i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === b.bandera) { sel.selectedIndex = i; break; }
+        }
+      }
+      if (b.tipo) {
+        var sel2 = document.getElementById('editBuqueTipo');
+        for (var j = 0; j < sel2.options.length; j++) {
+          if (sel2.options[j].value === b.tipo) { sel2.selectedIndex = j; break; }
+        }
+      }
+      abrirModal('modalEditarBuque');
+    }
+
+    function guardarEdicionBuque() {
+      var imo = document.getElementById('editBuqueIMO').value.trim();
+      if (!/^\d{7}$/.test(imo)) { showToast('El IMO debe tener exactamente 7 dígitos numéricos', 'error'); return; }
+
+      var fila = parseInt(document.getElementById('editBuqueFila').value);
+      var payload = {
+        fila: fila,
+        nombre: document.getElementById('editBuqueNombre').value,
+        senal: document.getElementById('editBuqueSenal').value,
+        bandera: document.getElementById('editBuqueBandera').value,
+        imo: imo,
+        tipo: document.getElementById('editBuqueTipo').value,
+        capacidad: document.getElementById('editBuqueCapacidad').value
+      };
+
+      showLoading('Guardando cambios...');
+      apiPost('editarBuque', payload).then(function(r) {
+        hideLoading();
+        if (r.success) { showToast('Buque actualizado.', 'success'); cerrarModal('modalEditarBuque'); cargarBuquesList(); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function confirmarEliminarBuque(rowIdx) {
+      var b = buquesList[rowIdx];
+      if (!b) return;
+      var filaReal = b.fila !== undefined ? b.fila : rowIdx;
+      if (!confirm('¿Eliminar el buque "' + (b.nombre || '') + '" (IMO: ' + (b.imo || '') + ')?\n\nSi tiene ingresos registrados, no se podrá eliminar.')) return;
+      showLoading('Eliminando...');
+      apiPost('eliminarBuque', { fila: filaReal }).then(function(res) {
+        hideLoading();
+        if (res.success) { showToast('Buque eliminado.', 'success'); cargarBuquesList(); }
+        else { showToast('Error: ' + (res.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    // ============================================
+    // GESTION DE USUARIOS
+    // ============================================
+    function cargarUsuarios() {
+      showLoading('Cargando usuarios...');
+      apiGet('listarUsuarios').then(function(data) {
+        hideLoading();
+        renderUsuarios(data || []);
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function renderUsuarios(data) {
+      var t = document.getElementById('usuariosBody');
+      if (!data.length) { t.innerHTML = '<tr><td colspan="4" style="text-align: center;">No hay usuarios</td></tr>'; return; }
+      var html = '';
+      for (var i = 0; i < data.length; i++) {
+        var u = data[i];
+        html += '<tr>';
+        html += '<td style="font-weight: 600;">' + (u.nombre||'') + '</td>';
+        html += '<td>' + (u.usuario||'') + '</td>';
+        html += '<td><span class="status-badge status-' + (u.rol === 'admin' ? 'arribó' : 'pendiente') + '">' + (u.rol === 'admin' ? 'Administrador' : 'Solo lectura') + '</span></td>';
+        html += '<td class="previsto-acciones">';
+        html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarUsuario(' + i + ', \'' + (u.usuario||'') + '\', \'' + (u.nombre||'').replace(/'/g, "\\'") + '\', \'' + (u.rol||'') + '\')">Editar</button> ';
+        html += '<button class="btn btn-danger btn-sm" onclick="confirmarEliminarUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">X</button>';
+        html += '</td></tr>';
+      }
+      t.innerHTML = html;
+    }
+
+    function abrirModalCrearUsuario() {
+      document.getElementById('usuarioEditando').value = 'false';
+      document.getElementById('usuarioFila').value = '';
+      document.getElementById('usuarioNombre').value = '';
+      document.getElementById('usuarioUser').value = '';
+      document.getElementById('usuarioPass').value = '';
+      document.getElementById('usuarioRol').value = 'visual';
+      document.getElementById('tituloModalUsuario').textContent = 'Agregar Usuario';
+      document.getElementById('labelPassword').innerHTML = 'Contraseña <span class="req">*</span>';
+      document.getElementById('usuarioUser').disabled = false;
+      document.getElementById('usuarioPass').required = true;
+      abrirModal('modalUsuario');
+    }
+
+    function abrirEditarUsuario(fila, usuario, nombre, rol) {
+      document.getElementById('usuarioEditando').value = 'true';
+      document.getElementById('usuarioFila').value = fila;
+      document.getElementById('usuarioNombre').value = nombre;
+      document.getElementById('usuarioUser').value = usuario;
+      document.getElementById('usuarioPass').value = '';
+      document.getElementById('usuarioRol').value = rol;
+      document.getElementById('tituloModalUsuario').textContent = 'Editar Usuario';
+      document.getElementById('labelPassword').innerHTML = 'Contraseña <em>(dejar vacío para no cambiar)</em>';
+      document.getElementById('usuarioUser').disabled = true;
+      document.getElementById('usuarioPass').required = false;
+      abrirModal('modalUsuario');
+    }
+
+    function guardarUsuario() {
+      var nombre = document.getElementById('usuarioNombre').value.trim();
+      var usuario = document.getElementById('usuarioUser').value.trim();
+      var pass = document.getElementById('usuarioPass').value;
+      var rol = document.getElementById('usuarioRol').value;
+      var editando = document.getElementById('usuarioEditando').value === 'true';
+      var fila = parseInt(document.getElementById('usuarioFila').value);
+
+      if (!nombre || !usuario) { showToast('Complete nombre y usuario', 'error'); return; }
+      if (!editando && !pass) { showToast('Ingrese una contraseña', 'error'); return; }
+      if (!rol) { showToast('Seleccione un rol', 'error'); return; }
+
+      var payload = { nombre: nombre, usuario: usuario, rol: rol };
+      if (pass) payload.password = pass;
+
+      showLoading(editando ? 'Guardando cambios...' : 'Creando usuario...');
+      var action = editando ? 'editarUsuario' : 'crearUsuario';
+      if (editando) payload.fila = fila;
+
+      apiPost(action, payload).then(function(r) {
+        hideLoading();
+        if (r.success) { showToast(editando ? 'Usuario actualizado.' : 'Usuario creado.', 'success'); cerrarModal('modalUsuario'); cargarUsuarios(); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function confirmarEliminarUsuario(fila, usuario) {
+      if (!confirm('¿Eliminar el usuario "' + usuario + '"?')) return;
+      showLoading('Eliminando...');
+      apiPost('eliminarUsuario', { fila: fila }).then(function(res) {
+        hideLoading();
+        if (res.success) { showToast('Usuario eliminado.', 'success'); cargarUsuarios(); }
+        else { showToast('Error: ' + (res.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+  </script>
+</body>
+</html>
