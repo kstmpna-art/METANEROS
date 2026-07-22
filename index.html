@@ -155,7 +155,7 @@
           <div class="form-group"><label>Hora Zarpada</label><input type="time" id="prevEditHoraZarpada"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Estado</label><select id="prevEditEstado"><option value="Pendiente">Pendiente</option><option value="Arribó">Arribó</option><option value="Completado">Completado</option><option value="Zarpado">Zarpado</option></select></div>
+          <div class="form-group"><label>Estado</label><select id="prevEditEstado"><option value="Pendiente">Pendiente</option><option value="Arribó">Arribó</option><option value="Completado">Completado</option><option value="Zarpado">Zarpado</option><option value="Cancelado">Cancelado</option></select></div>
           <div class="form-group"><label>Observaciones</label><input type="text" id="prevEditObservaciones"></div>
         </div>
         <div class="form-actions" style="justify-content: flex-end;">
@@ -678,15 +678,11 @@
     // ============================================
     // CONEXIÓN CON EL BACKEND (Apps Script Web App)
     // ============================================
-    // Link de TU despliegue como Aplicación Web (termina en /exec).
-    var API_URL = 'https://script.google.com/macros/s/AKfycbxiRlEheVTX3m4M5GOfa6K3mZJZDFzM0FnT6-G6JViJD7O62TduNaJPTjlKBPdFiMNKow/exec';
 
-    // Los Web Apps de Apps Script redirigen internamente la respuesta a
-    // script.googleusercontent.com, y esa redirección no lleva headers de
-    // CORS válidos — por eso fetch() falla siempre con "No Access-Control-
-    // Allow-Origin", sin importar el origen. La solución es JSONP: pedimos
-    // el dato con una etiqueta <script>, que no está sujeta a CORS, y el
-    // servidor responde envuelto en una función callback.
+    var API_URL = 'https://script.google.com/macros/s/AKfycbxp4IVQ76MKgYvWDUHcdPJWc3GZpGHA8y4en7EsT1ewVqnr2PepupA-aOb8ObByVDPoPg/exec';
+
+    // ===============================
+    
     function jsonp(url) {
       return new Promise(function(resolve, reject) {
         var cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
@@ -1477,8 +1473,11 @@
         var estadoDisplay = p.estado;
         var estadoClass = (p.estado || '').toLowerCase();
         if (p.estado === 'Pendiente' && p.fechaPrevista) {
-          var fp = new Date(p.fechaPrevista);
-          if (!isNaN(fp.getTime()) && fp < hoy) { estadoDisplay = 'Vencido'; estadoClass = 'vencido'; }
+          var parts = p.fechaPrevista.split(' - ');
+          if (parts.length === 3) {
+            var fp = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            if (!isNaN(fp.getTime()) && fp < hoy) { estadoDisplay = 'Vencido'; estadoClass = 'vencido'; }
+          }
         }
         html += '<tr>';
         html += '<td>' + (p.anio||'') + '</td>';
@@ -1492,7 +1491,7 @@
             html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarPrevisto(' + i + ')">Editar</button> ';
           }
           if (p.estado === 'Pendiente') {
-            html += '<button class="btn btn-success btn-sm" onclick="cambiarEstado(' + filaReal + ', \'Arribó\')">Marcar Arribó</button> ';
+            html += '<button class="btn btn-danger btn-sm" onclick="cambiarEstado(' + filaReal + ', \'Cancelado\')">Cancelar</button> ';
           }
           html += '<button class="btn btn-danger btn-sm" onclick="eliminarPrevisto(' + filaReal + ')">X</button>';
         }
@@ -1573,6 +1572,36 @@
       var horaZarpada = document.getElementById('prevEditHoraZarpada').value;
       var estado = document.getElementById('prevEditEstado').value;
       var observaciones = document.getElementById('prevEditObservaciones').value;
+
+      if (estado === 'Cancelado') {
+        showLoading('Cancelando previsto...');
+        apiPost('actualizarEstadoPrevisto', { fila: fila, estado: 'Cancelado' }).then(function(r) {
+          hideLoading();
+          if (r.success) {
+            showToast('Previsto cancelado.', 'success');
+            cerrarModal('modalEditarPrevisto');
+            cargarPrevistos(currentPrevYear);
+          } else {
+            showToast('Error: ' + (r.error || 'desconocido'), 'error');
+          }
+        }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+        return;
+      }
+
+      if (estado === 'Pendiente') {
+        showLoading('Cambiando a Pendiente...');
+        apiPost('actualizarEstadoPrevisto', { fila: fila, estado: 'Pendiente' }).then(function(r) {
+          hideLoading();
+          if (r.success) {
+            showToast('Previsto vuelto a Pendiente.', 'success');
+            cerrarModal('modalEditarPrevisto');
+            cargarPrevistos(currentPrevYear);
+          } else {
+            showToast('Error: ' + (r.error || 'desconocido'), 'error');
+          }
+        }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+        return;
+      }
 
       if (!fechaAmarre || !horaAmarre || !puerto) { showToast('Complete fecha, hora de amarre y puerto', 'error'); return; }
 
@@ -1800,6 +1829,7 @@
         html += '<td><span class="status-badge status-' + (u.rol === 'admin' ? 'arribó' : 'pendiente') + '">' + (u.rol === 'admin' ? 'Administrador' : 'Solo lectura') + '</span></td>';
         html += '<td class="previsto-acciones">';
         html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarUsuario(' + i + ', \'' + (u.usuario||'') + '\', \'' + (u.nombre||'').replace(/'/g, "\\'") + '\', \'' + (u.rol||'') + '\')">Editar</button> ';
+        html += '<button class="btn btn-outline btn-sm" onclick="resetPasswordUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">Resetear Contraseña</button> ';
         html += '<button class="btn btn-danger btn-sm" onclick="confirmarEliminarUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">X</button>';
         html += '</td></tr>';
       }
@@ -1856,6 +1886,17 @@
       apiPost(action, payload).then(function(r) {
         hideLoading();
         if (r.success) { showToast(editando ? 'Usuario actualizado.' : 'Usuario creado.', 'success'); cerrarModal('modalUsuario'); cargarUsuarios(); }
+        else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
+      }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
+    }
+
+    function resetPasswordUsuario(fila, usuario) {
+      var nuevaPass = prompt('Ingrese la nueva contraseña para "' + usuario + '":');
+      if (!nuevaPass || !nuevaPass.trim()) return;
+      showLoading('Reseteando contraseña...');
+      apiPost('resetPassword', { fila: fila, nuevaPassword: nuevaPass.trim() }).then(function(r) {
+        hideLoading();
+        if (r.success) { showToast('Contraseña actualizada.', 'success'); }
         else { showToast('Error: ' + (r.error || 'desconocido'), 'error'); }
       }).catch(function(e) { hideLoading(); showToast('Error: ' + e.message, 'error'); });
     }
