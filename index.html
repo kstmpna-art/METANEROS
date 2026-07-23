@@ -109,7 +109,7 @@
         </div>
         <div class="form-row">
           <div class="form-group"><label id="labelPassword">Contraseña <span class="req">*</span></label><input type="password" id="usuarioPass"></div>
-          <div class="form-group"><label>Rol <span class="req">*</span></label><select id="usuarioRol" required><option value="visual">Solo lectura (visual)</option><option value="admin">Administrador</option></select></div>
+          <div class="form-group"><label>Rol <span class="req">*</span></label><select id="usuarioRol" required><option value="visual">Solo lectura (visual)</option><option value="admin">Administrador</option><option value="super">Super Usuario</option></select></div>
         </div>
         <div class="form-actions" style="justify-content: flex-end;">
           <button type="button" class="btn btn-outline" onclick="cerrarModal('modalUsuario')">Cancelar</button>
@@ -197,8 +197,9 @@
       <div class="login-logo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       </div>
-      <h2>Sistema de Gestión - Buques Metaneros</h2>
+      <h2>Gestión y Control- Buques Metaneros</h2>
       <p class="login-subtitle">Prefectura Naval Argentina</p>
+      <p class="login-subtitle">Dirección de Tráfico Marítimo Fluvial y Lacustre</p>
       <form id="loginForm" onsubmit="return false;">
         <div class="login-field">
           <label for="loginUsuario">Usuario</label>
@@ -534,7 +535,8 @@
       try { sessionStorage.removeItem('buques-session'); } catch (e) {}
     }
 
-    function isAdmin() { return session.rol === 'admin'; }
+    function isAdmin() { return session.rol === 'admin' || session.rol === 'super'; }
+    function isSuper() { return session.rol === 'super'; }
 
     function doLogin() {
       var usuario = document.getElementById('loginUsuario').value.trim();
@@ -571,23 +573,25 @@
       var nombreEl = document.getElementById('sessionUserName');
       var rolEl = document.getElementById('sessionUserRole');
       if (nombreEl) nombreEl.textContent = session.nombre || session.usuario;
-      if (rolEl) rolEl.textContent = session.rol === 'admin' ? 'Administrador' : 'Solo lectura';
+      if (rolEl) rolEl.textContent = session.rol === 'super' ? 'Super Usuario' : (session.rol === 'admin' ? 'Administrador' : 'Solo lectura');
       applyRolePermissions();
       initApp();
     }
 
     function applyRolePermissions() {
       var vis = isAdmin() ? '' : 'none';
-      // Botones de acción que solo admin puede ver
+      var superVis = isSuper() ? '' : 'none';
       var adminOnly = document.querySelectorAll('.admin-only');
       for (var i = 0; i < adminOnly.length; i++) adminOnly[i].style.display = vis;
-      // Movimientos: ocultar solo "Nuevo Ingreso" si es visual
+      var navAdmin = document.getElementById('navBtnAdmin');
+      if (navAdmin) navAdmin.style.display = superVis;
       var navNuevos = document.getElementById('navLinkNuevo');
       if (navNuevos) navNuevos.style.display = isAdmin() ? '' : 'none';
-      // En previstos: ocultar formulario de agregar y botones de acción
       var prevForm = document.querySelector('#previstos .form-container');
       if (prevForm && !isAdmin()) prevForm.style.display = 'none';
       else if (prevForm) prevForm.style.display = '';
+      var histAcciones = document.querySelectorAll('#historialBody .admin-only');
+      for (var j = 0; j < histAcciones.length; j++) histAcciones[j].style.display = vis;
     }
 
     function initApp() {
@@ -672,14 +676,14 @@
       if (sectionId === 'dashboard') cargarDashboard(currentDashYear);
       if (sectionId === 'historial') cargarHistorial(currentHistYear);
       if (sectionId === 'previstos') cargarPrevistos(currentPrevYear);
-      if (sectionId === 'usuarios' && isAdmin()) cargarUsuarios();
+      if (sectionId === 'usuarios' && isSuper()) cargarUsuarios();
     }
 
     // ============================================
     // CONEXIÓN CON EL BACKEND (Apps Script Web App)
     // ============================================
 
-    var API_URL = 'https://script.google.com/macros/s/AKfycbxp4IVQ76MKgYvWDUHcdPJWc3GZpGHA8y4en7EsT1ewVqnr2PepupA-aOb8ObByVDPoPg/exec';
+    var API_URL = 'https://script.google.com/macros/s/AKfycbyObf3lz04Kql5Q0VkuJjPAQ9yF1zDDdHdKRM4LhnimRZzAPVZhhB71Pszb51CqmVP7bQ/exec';
 
     // ===============================
     
@@ -1826,12 +1830,17 @@
         html += '<tr>';
         html += '<td style="font-weight: 600;">' + (u.nombre||'') + '</td>';
         html += '<td>' + (u.usuario||'') + '</td>';
-        html += '<td><span class="status-badge status-' + (u.rol === 'admin' ? 'arribó' : 'pendiente') + '">' + (u.rol === 'admin' ? 'Administrador' : 'Solo lectura') + '</span></td>';
-        html += '<td class="previsto-acciones">';
-        html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarUsuario(' + i + ', \'' + (u.usuario||'') + '\', \'' + (u.nombre||'').replace(/'/g, "\\'") + '\', \'' + (u.rol||'') + '\')">Editar</button> ';
-        html += '<button class="btn btn-outline btn-sm" onclick="resetPasswordUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">Resetear Contraseña</button> ';
-        html += '<button class="btn btn-danger btn-sm" onclick="confirmarEliminarUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">X</button>';
-        html += '</td></tr>';
+        var rolBadge = u.rol === 'super' ? 'Super Usuario' : (u.rol === 'admin' ? 'Administrador' : 'Solo lectura');
+        var rolClass = u.rol === 'super' ? 'arribó' : (u.rol === 'admin' ? 'completado' : 'pendiente');
+        html += '<td><span class="status-badge status-' + rolClass + '">' + rolBadge + '</span></td>';
+        if (isSuper()) {
+          html += '<td class="previsto-acciones">';
+          html += '<button class="btn btn-primary btn-sm" onclick="abrirEditarUsuario(' + i + ', \'' + (u.usuario||'') + '\', \'' + (u.nombre||'').replace(/'/g, "\\'") + '\', \'' + (u.rol||'') + '\')">Editar</button> ';
+          html += '<button class="btn btn-outline btn-sm" onclick="resetPasswordUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">Resetear Contraseña</button> ';
+          html += '<button class="btn btn-danger btn-sm" onclick="confirmarEliminarUsuario(' + u.fila + ', \'' + (u.usuario||'') + '\')">X</button>';
+          html += '</td>';
+        }
+        html += '</tr>';
       }
       t.innerHTML = html;
     }
