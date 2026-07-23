@@ -145,6 +145,9 @@
     .chart-container { background: var(--bg-card); padding: 1rem; border-radius: 10px; border: 1px solid var(--border); }
     .chart-container h3 { margin-bottom: 0.7rem; color: var(--accent); font-weight: 600; font-size: 1rem; }
     .chart-container canvas { max-height: 250px; }
+    #mapProcedencia { background: #0c1820; }
+    .leaflet-tooltip { background: var(--bg-card); color: var(--text-light); border: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 0.85rem; }
+    .leaflet-tooltip-top:before { border-top-color: var(--bg-card); }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(4,10,14,0.82); z-index: 10000; justify-content: center; align-items: center; }
     .modal-overlay.active { display: flex; }
@@ -165,6 +168,7 @@
     .status-arribó { background: var(--secondary); color: #fff; }
     .status-vencido { background: var(--danger); color: #fff; }
     .status-zarpado { background: #5a7280; color: #fff; }
+    .status-cancelado { background: #6b7280; color: #fff; }
 
     .historial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
     .historial-header h2 { color: var(--accent); font-weight: 600; font-size: 1.3rem; }
@@ -203,12 +207,20 @@
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
       background: var(--bg-dark);
-      background-image:
-        radial-gradient(circle at 10% 0%, var(--bg-radial-1), transparent 40%),
-        radial-gradient(circle at 90% 100%, var(--bg-radial-2), transparent 45%);
       z-index: 9000;
       justify-content: center;
       align-items: center;
+    }
+    .login-screen::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background-image: url('img/Fondoo.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0.8;
+      z-index: -1;
     }
     .login-box {
       background: var(--bg-card);
@@ -222,7 +234,8 @@
     }
     .login-logo { margin-bottom: 1.2rem; color: var(--accent); }
     .login-box h2 { font-size: 1.3rem; color: var(--text-light); margin-bottom: 0.3rem; }
-    .login-subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 2rem; }
+    .login-subtitle { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.3rem; }
+    .login-subtitle:last-of-type { margin-bottom: 1.8rem; }
     .login-field { text-align: left; margin-bottom: 1.2rem; }
     .login-field label { display: block; margin-bottom: 0.4rem; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
     .login-field input {
