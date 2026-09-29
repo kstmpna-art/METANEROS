@@ -1141,7 +1141,8 @@
       var container = document.getElementById('mapProcedencia');
       if (!container) return;
       mapaProcedencia = L.map('mapProcedencia', { zoomControl: true, attributionControl: false }).setView([20, 0], 1.5);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 8 }).addTo(mapaProcedencia);
+      L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 8 }).addTo(mapaProcedencia);
+      L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 8 }).addTo(mapaProcedencia);
       var bounds = [];
       var radius = 10;
       for (var i = 0; i < topProcs.length; i++) {
